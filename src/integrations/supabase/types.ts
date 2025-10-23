@@ -14,6 +14,64 @@ export type Database = {
   }
   public: {
     Tables: {
+      behavior_categories: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          room_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          room_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          room_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "behavior_categories_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      behavior_items: {
+        Row: {
+          category_id: string
+          created_at: string | null
+          id: string
+          label: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string | null
+          id?: string
+          label: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string | null
+          id?: string
+          label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "behavior_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "behavior_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       game_sessions: {
         Row: {
           code: string
@@ -48,6 +106,38 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "game_sessions_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      role_templates: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          room_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          room_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          room_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_templates_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "rooms"

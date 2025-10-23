@@ -12,6 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { CreateGameDialog } from "@/components/CreateGameDialog";
 import { GameSessionsList } from "@/components/GameSessionsList";
+import { RolesTab } from "@/components/RolesTab";
+import { BehaviorCategoriesTab } from "@/components/BehaviorCategoriesTab";
 
 interface Room {
   id: string;
@@ -310,23 +312,11 @@ const RoomDetail = () => {
           </TabsContent>
 
           <TabsContent value="roles">
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-muted-foreground text-center py-8">
-                  Role budou k dispozici v kroku 2
-                </p>
-              </CardContent>
-            </Card>
+            <RolesTab roomId={room.id} />
           </TabsContent>
 
           <TabsContent value="categories">
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-muted-foreground text-center py-8">
-                  Kategorie chování budou k dispozici v kroku 2
-                </p>
-              </CardContent>
-            </Card>
+            <BehaviorCategoriesTab roomId={room.id} />
           </TabsContent>
         </Tabs>
       </div>
