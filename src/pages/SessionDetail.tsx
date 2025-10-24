@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Square } from "lucide-react";
+import { ArrowLeft, Play, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { AddPlayerDialog } from "@/components/AddPlayerDialog";
+import { PlayerCard } from "@/components/PlayerCard";
+import { PlayerObservation } from "@/components/PlayerObservation";
 
 interface GameSession {
   id: string;
@@ -21,6 +24,17 @@ interface Room {
   id: string;
   name: string;
   branch: string | null;
+  band_colors: string[] | null;
+}
+
+interface Player {
+  id: string;
+  full_name: string;
+  email: string | null;
+  phone: string | null;
+  band_color: string | null;
+  gender: string | null;
+  consent: boolean;
 }
 
 const SessionDetail = () => {
@@ -29,8 +43,10 @@ const SessionDetail = () => {
   const { toast } = useToast();
   const [session, setSession] = useState<GameSession | null>(null);
   const [room, setRoom] = useState<Room | null>(null);
+  const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeRemaining, setTimeRemaining] = useState("");
+  const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -65,6 +81,16 @@ const SessionDetail = () => {
 
         if (roomError) throw roomError;
         setRoom(roomData);
+
+        // Fetch players
+        const { data: playersData, error: playersError } = await supabase
+          .from("players")
+          .select("*")
+          .eq("session_id", id)
+          .order("created_at", { ascending: true });
+
+        if (playersError) throw playersError;
+        setPlayers(playersData || []);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -96,7 +122,7 @@ const SessionDetail = () => {
   }, [id, navigate, toast]);
 
   useEffect(() => {
-    if (!session || session.status === "finished") return;
+    if (!session || session.status !== "running") return;
 
     const updateTimer = () => {
       const startTime = new Date(session.start_time).getTime();
@@ -117,6 +143,34 @@ const SessionDetail = () => {
     return () => clearInterval(interval);
   }, [session]);
 
+  const handleStartGame = async () => {
+    if (!session) return;
+
+    try {
+      const { error } = await supabase
+        .from("game_sessions")
+        .update({
+          status: "running",
+          start_time: new Date().toISOString(),
+        })
+        .eq("id", session.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Hra spuštěna",
+        description: "Hra byla úspěšně spuštěna",
+      });
+    } catch (error) {
+      console.error("Error starting game:", error);
+      toast({
+        title: "Chyba",
+        description: "Nepodařilo se spustit hru",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleEndGame = async () => {
     if (!session) return;
 
@@ -135,8 +189,6 @@ const SessionDetail = () => {
         title: "Hra ukončena",
         description: "Hra byla úspěšně ukončena",
       });
-
-      setSession({ ...session, status: "finished", end_time: new Date().toISOString() });
     } catch (error) {
       console.error("Error ending game:", error);
       toast({
@@ -157,9 +209,34 @@ const SessionDetail = () => {
 
   if (!session || !room) return null;
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "pending":
+        return "Nepuštěná";
+      case "running":
+        return "Probíhá";
+      case "finished":
+        return "Dokončená";
+      default:
+        return status;
+    }
+  };
+
+  const fetchPlayers = async () => {
+    const { data, error } = await supabase
+      .from("players")
+      .select("*")
+      .eq("session_id", id!)
+      .order("created_at", { ascending: true });
+
+    if (!error && data) {
+      setPlayers(data);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
         <Link to={`/rooms/${room.id}`}>
           <Button variant="ghost" size="sm" className="mb-6">
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -178,9 +255,15 @@ const SessionDetail = () => {
                   )}
                 </div>
                 <Badge
-                  variant={session.status === "running" ? "default" : "secondary"}
+                  variant={
+                    session.status === "running"
+                      ? "default"
+                      : session.status === "finished"
+                      ? "secondary"
+                      : "outline"
+                  }
                 >
-                  {session.status === "running" ? "Probíhá" : "Ukončená"}
+                  {getStatusLabel(session.status)}
                 </Badge>
               </div>
             </CardHeader>
@@ -195,7 +278,13 @@ const SessionDetail = () => {
                   <p className="text-sm text-muted-foreground mb-2">
                     Zbývající čas (z {session.time_limit_minutes} minut)
                   </p>
-                  <div className="text-5xl font-bold text-primary tabular-nums">
+                  <div
+                    className={`text-5xl font-bold tabular-nums ${
+                      timeRemaining.startsWith("−")
+                        ? "text-destructive"
+                        : "text-primary"
+                    }`}
+                  >
                     {timeRemaining}
                   </div>
                 </div>
@@ -212,21 +301,97 @@ const SessionDetail = () => {
             </CardContent>
           </Card>
 
-          {session.status === "running" && (
-            <Button
-              variant="destructive"
-              size="lg"
-              className="w-full"
-              onClick={handleEndGame}
-            >
-              <Square className="w-5 h-5 mr-2" />
-              Ukončit hru
-            </Button>
-          )}
+          {/* Game controls */}
+          <div className="flex gap-2">
+            {session.status === "pending" && (
+              <Button
+                size="lg"
+                className="flex-1"
+                onClick={handleStartGame}
+              >
+                <Play className="w-5 h-5 mr-2" />
+                Spustit hru
+              </Button>
+            )}
+            {session.status === "running" && (
+              <Button
+                variant="destructive"
+                size="lg"
+                className="flex-1"
+                onClick={handleEndGame}
+              >
+                <Square className="w-5 h-5 mr-2" />
+                Ukončit hru
+              </Button>
+            )}
+          </div>
 
+          {/* Players section */}
           <Card>
-            <CardContent className="py-8 text-center text-muted-foreground">
-              <p>Detaily hráčů a pozorování budou k dispozici v kroku 3</p>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Hráči</CardTitle>
+                {session.status !== "finished" && (
+                  <AddPlayerDialog
+                    sessionId={session.id}
+                    bandColors={room.band_colors || []}
+                    onPlayerAdded={fetchPlayers}
+                  />
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {players.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">
+                  Zatím nejsou přidáni žádní hráči
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {/* Player cards grid */}
+                  <div
+                    className={`grid gap-4 ${
+                      expandedPlayerId
+                        ? "grid-cols-1 md:grid-cols-4"
+                        : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+                    }`}
+                  >
+                    {players.map((player) => (
+                      <div
+                        key={player.id}
+                        className={
+                          expandedPlayerId && expandedPlayerId !== player.id
+                            ? "md:col-span-1"
+                            : expandedPlayerId === player.id
+                            ? "md:col-span-3"
+                            : ""
+                        }
+                      >
+                        {expandedPlayerId === player.id ? (
+                          <PlayerObservation
+                            playerId={player.id}
+                            roomId={room.id}
+                          />
+                        ) : (
+                          <PlayerCard
+                            player={player}
+                            isExpanded={false}
+                            onClick={() => setExpandedPlayerId(player.id)}
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {expandedPlayerId && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setExpandedPlayerId(null)}
+                      className="w-full"
+                    >
+                      Zavřít detail hráče
+                    </Button>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

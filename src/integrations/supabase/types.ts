@@ -113,6 +113,98 @@ export type Database = {
           },
         ]
       }
+      player_observations: {
+        Row: {
+          checks: Json | null
+          created_at: string | null
+          id: string
+          language: string
+          notes: string | null
+          player_id: string
+          primary_role_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          checks?: Json | null
+          created_at?: string | null
+          id?: string
+          language?: string
+          notes?: string | null
+          player_id: string
+          primary_role_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          checks?: Json | null
+          created_at?: string | null
+          id?: string
+          language?: string
+          notes?: string | null
+          player_id?: string
+          primary_role_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_observations_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_observations_primary_role_id_fkey"
+            columns: ["primary_role_id"]
+            isOneToOne: false
+            referencedRelation: "role_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      players: {
+        Row: {
+          band_color: string | null
+          consent: boolean
+          created_at: string | null
+          email: string | null
+          full_name: string
+          gender: string | null
+          id: string
+          phone: string | null
+          session_id: string
+        }
+        Insert: {
+          band_color?: string | null
+          consent?: boolean
+          created_at?: string | null
+          email?: string | null
+          full_name: string
+          gender?: string | null
+          id?: string
+          phone?: string | null
+          session_id: string
+        }
+        Update: {
+          band_color?: string | null
+          consent?: boolean
+          created_at?: string | null
+          email?: string | null
+          full_name?: string
+          gender?: string | null
+          id?: string
+          phone?: string | null
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "players_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "game_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role_templates: {
         Row: {
           created_at: string | null

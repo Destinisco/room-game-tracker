@@ -14,6 +14,7 @@ import { CreateGameDialog } from "@/components/CreateGameDialog";
 import { GameSessionsList } from "@/components/GameSessionsList";
 import { RolesTab } from "@/components/RolesTab";
 import { BehaviorCategoriesTab } from "@/components/BehaviorCategoriesTab";
+import { DeleteRoomDialog } from "@/components/DeleteRoomDialog";
 
 interface Room {
   id: string;
@@ -188,10 +189,13 @@ const RoomDetail = () => {
               Zpět
             </Button>
           </Link>
-          <Button onClick={handleSave} disabled={saving}>
-            <Save className="w-4 h-4 mr-2" />
-            {saving ? "Ukládání..." : "Uložit místnost"}
-          </Button>
+          <div className="flex gap-2">
+            <DeleteRoomDialog roomId={room.id} roomName={room.name} />
+            <Button onClick={handleSave} disabled={saving}>
+              <Save className="w-4 h-4 mr-2" />
+              {saving ? "Ukládání..." : "Uložit místnost"}
+            </Button>
+          </div>
         </div>
 
         <h1 className="text-3xl font-bold mb-6">Upravit místnost</h1>
