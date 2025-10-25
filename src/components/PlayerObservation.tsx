@@ -19,6 +19,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -42,8 +43,10 @@ interface BehaviorItem {
 interface ObservationFormData {
   language: "cs" | "en";
   primaryRoleId?: string;
-  checks: { [key: string]: boolean };
+  checks: { [key: string]: boolean | undefined };
   notes: string;
+  bandColor?: string;
+  gender?: string;
 }
 
 interface PlayerObservationProps {
@@ -59,6 +62,7 @@ export const PlayerObservation = ({
   const [roles, setRoles] = useState<RoleTemplate[]>([]);
   const [categories, setCategories] = useState<BehaviorCategory[]>([]);
   const [observationId, setObservationId] = useState<string | null>(null);
+  const [playerInfo, setPlayerInfo] = useState<{ band_color: string | null; gender: string | null }>();
 
   const form = useForm<ObservationFormData>({
     defaultValues: {
@@ -72,7 +76,23 @@ export const PlayerObservation = ({
   useEffect(() => {
     fetchRolesAndCategories();
     fetchObservation();
+    fetchPlayerInfo();
   }, [playerId, roomId]);
+
+  const fetchPlayerInfo = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("players")
+        .select("band_color, gender")
+        .eq("id", playerId)
+        .single();
+
+      if (error) throw error;
+      setPlayerInfo(data);
+    } catch (error) {
+      console.error("Error fetching player info:", error);
+    }
+  };
 
   const fetchRolesAndCategories = async () => {
     try {
@@ -115,7 +135,7 @@ export const PlayerObservation = ({
         form.reset({
           language: data.language as "cs" | "en",
           primaryRoleId: data.primary_role_id || "",
-          checks: (data.checks as { [key: string]: boolean }) || {},
+          checks: (data.checks as { [key: string]: boolean | undefined }) || {},
           notes: data.notes || "",
         });
       }
@@ -154,6 +174,10 @@ export const PlayerObservation = ({
         title: "Uloženo",
         description: "Pozorování bylo úspěšně uloženo",
       });
+      
+      // Refresh data but keep expanded
+      fetchObservation();
+      fetchPlayerInfo();
     } catch (error) {
       console.error("Error saving observation:", error);
       toast({
@@ -164,10 +188,25 @@ export const PlayerObservation = ({
     }
   };
 
-  const getCategoryCount = (categoryId: string, items: BehaviorItem[]) => {
+  const getCategoryCount = (items: BehaviorItem[]) => {
     const checks = form.watch("checks");
     const yesCount = items.filter((item) => checks[item.id] === true).length;
     return `${yesCount}/${items.length}`;
+  };
+
+  const getYesItems = () => {
+    const checks = form.watch("checks");
+    const yesItems: { category: string; label: string }[] = [];
+    
+    categories.forEach((category) => {
+      category.items.forEach((item) => {
+        if (checks[item.id] === true) {
+          yesItems.push({ category: category.name, label: item.label });
+        }
+      });
+    });
+    
+    return yesItems;
   };
 
   return (
@@ -234,22 +273,22 @@ export const PlayerObservation = ({
               <h3 className="font-semibold">Pozorované chování</h3>
               {categories.map((category) => (
                 <Card key={category.id}>
-                  <CardHeader>
+                  <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-base">{category.name}</CardTitle>
-                      <span className="text-sm text-muted-foreground">
-                        {getCategoryCount(category.id, category.items)}
-                      </span>
+                      <Badge variant="secondary">
+                        {getCategoryCount(category.items)}
+                      </Badge>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-3">
+                  <CardContent className="space-y-2">
                     {category.items.map((item) => (
                       <div
                         key={item.id}
-                        className="flex items-center justify-between"
+                        className="flex items-center justify-between gap-4"
                       >
-                        <span className="text-sm">{item.label}</span>
-                        <div className="flex gap-2">
+                        <span className="text-sm flex-1">{item.label}</span>
+                        <div className="flex gap-1">
                           <Button
                             type="button"
                             size="sm"
@@ -262,9 +301,10 @@ export const PlayerObservation = ({
                               const current = form.getValues("checks");
                               form.setValue("checks", {
                                 ...current,
-                                [item.id]: true,
+                                [item.id]: current[item.id] === true ? undefined : true,
                               });
                             }}
+                            className="min-w-[60px]"
                           >
                             Ano
                           </Button>
@@ -280,9 +320,10 @@ export const PlayerObservation = ({
                               const current = form.getValues("checks");
                               form.setValue("checks", {
                                 ...current,
-                                [item.id]: false,
+                                [item.id]: current[item.id] === false ? undefined : false,
                               });
                             }}
+                            className="min-w-[60px]"
                           >
                             Ne
                           </Button>
@@ -293,6 +334,35 @@ export const PlayerObservation = ({
                 </Card>
               ))}
             </div>
+
+            {/* Souhrn */}
+            <Card className="bg-muted/50">
+              <CardHeader>
+                <CardTitle className="text-base">Souhrn</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex gap-2 text-sm">
+                  <span className="font-medium">Barva:</span>
+                  <span>{playerInfo?.band_color || "—"}</span>
+                  <span className="mx-2">•</span>
+                  <span className="font-medium">Pohlaví:</span>
+                  <span>{playerInfo?.gender || "—"}</span>
+                </div>
+                
+                {getYesItems().length > 0 && (
+                  <div className="text-sm">
+                    <p className="font-medium mb-2">Vybrané (Ano):</p>
+                    <ul className="space-y-1">
+                      {getYesItems().map((item, idx) => (
+                        <li key={idx} className="text-muted-foreground">
+                          {item.category} — {item.label}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             <FormField
               control={form.control}

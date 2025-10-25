@@ -15,6 +15,7 @@ interface Room {
   time_limit_minutes: number;
   description: string | null;
   band_colors: string[];
+  edit_code: string | null;
 }
 
 interface GameSession {
@@ -120,7 +121,7 @@ const Dashboard = () => {
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {rooms.map((room) => {
                 const roomSessions = sessions.filter((s) => s.room_id === room.id);
-                return <RoomCard key={room.id} room={room} runningSessions={roomSessions} />;
+                return <RoomCard key={room.id} room={room} runningSessions={roomSessions} onUpdate={fetchData} />;
               })}
             </div>
           </div>

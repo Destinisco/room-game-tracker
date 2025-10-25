@@ -8,6 +8,7 @@ export const StatsCards = () => {
     today: 0,
     thisWeek: 0,
     thisMonth: 0,
+    avgPlayersMonth: 0,
   });
 
   useEffect(() => {
@@ -19,7 +20,11 @@ export const StatsCards = () => {
 
       const { data: allSessions } = await supabase
         .from("game_sessions")
-        .select("created_at");
+        .select("id, created_at");
+
+      const { data: allPlayers } = await supabase
+        .from("players")
+        .select("session_id");
 
       if (allSessions) {
         const today = allSessions.filter(
@@ -30,11 +35,20 @@ export const StatsCards = () => {
           (s) => new Date(s.created_at) >= weekStart
         ).length;
 
-        const thisMonth = allSessions.filter(
+        const monthSessions = allSessions.filter(
           (s) => new Date(s.created_at) >= monthStart
-        ).length;
+        );
+        const thisMonth = monthSessions.length;
 
-        setStats({ today, thisWeek, thisMonth });
+        // Average players per game this month
+        let avgPlayersMonth = 0;
+        if (allPlayers && monthSessions.length > 0) {
+          const monthSessionIds = monthSessions.map(s => s.id);
+          const monthPlayers = allPlayers.filter(p => monthSessionIds.includes(p.session_id));
+          avgPlayersMonth = monthPlayers.length / monthSessions.length;
+        }
+
+        setStats({ today, thisWeek, thisMonth, avgPlayersMonth });
       }
     };
 
@@ -55,13 +69,14 @@ export const StatsCards = () => {
   }, []);
 
   const statsData = [
-    { title: "Dnes", value: stats.today },
-    { title: "Tento týden", value: stats.thisWeek },
-    { title: "Tento měsíc", value: stats.thisMonth },
+    { title: "Dnes", value: stats.today, suffix: "založených her" },
+    { title: "Tento týden", value: stats.thisWeek, suffix: "založených her" },
+    { title: "Tento měsíc", value: stats.thisMonth, suffix: "založených her" },
+    { title: "Průměr hráčů na hru", value: stats.avgPlayersMonth.toFixed(1), suffix: "tento měsíc" },
   ];
 
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       {statsData.map((stat) => (
         <Card key={stat.title}>
           <CardHeader className="pb-2">
@@ -71,7 +86,7 @@ export const StatsCards = () => {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-primary">{stat.value}</div>
-            <p className="text-xs text-muted-foreground mt-1">založených her</p>
+            <p className="text-xs text-muted-foreground mt-1">{stat.suffix}</p>
           </CardContent>
         </Card>
       ))}

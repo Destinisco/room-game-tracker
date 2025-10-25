@@ -78,30 +78,36 @@ export type Database = {
           created_at: string | null
           end_time: string | null
           id: string
+          paused_at: string | null
           room_id: string
           start_time: string
           status: string
           time_limit_minutes: number
+          total_paused_ms: number
         }
         Insert: {
           code: string
           created_at?: string | null
           end_time?: string | null
           id?: string
+          paused_at?: string | null
           room_id: string
           start_time?: string
           status?: string
           time_limit_minutes: number
+          total_paused_ms?: number
         }
         Update: {
           code?: string
           created_at?: string | null
           end_time?: string | null
           id?: string
+          paused_at?: string | null
           room_id?: string
           start_time?: string
           status?: string
           time_limit_minutes?: number
+          total_paused_ms?: number
         }
         Relationships: [
           {
@@ -243,6 +249,7 @@ export type Database = {
           branch: string | null
           created_at: string | null
           description: string | null
+          edit_code: string | null
           id: string
           name: string
           time_limit_minutes: number
@@ -253,6 +260,7 @@ export type Database = {
           branch?: string | null
           created_at?: string | null
           description?: string | null
+          edit_code?: string | null
           id?: string
           name: string
           time_limit_minutes: number
@@ -263,6 +271,7 @@ export type Database = {
           branch?: string | null
           created_at?: string | null
           description?: string | null
+          edit_code?: string | null
           id?: string
           name?: string
           time_limit_minutes?: number

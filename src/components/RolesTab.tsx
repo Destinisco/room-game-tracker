@@ -24,24 +24,8 @@ export const RolesTab = ({ roomId }: RolesTabProps) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchRoles = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("role_templates")
-          .select("*")
-          .eq("room_id", roomId)
-          .order("created_at", { ascending: true });
-
-        if (error) throw error;
-        setRoles(data || []);
-      } catch (error) {
-        console.error("Error fetching roles:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchRoles();
+    setLoading(false);
 
     const channel = supabase
       .channel(`roles-${roomId}`)
@@ -71,6 +55,13 @@ export const RolesTab = ({ roomId }: RolesTabProps) => {
       });
 
       if (error) throw error;
+      
+      toast({
+        title: "Vytvořeno",
+        description: "Role byla přidána",
+      });
+      
+      fetchRoles();
     } catch (error) {
       console.error("Error adding role:", error);
       toast({
@@ -86,6 +77,11 @@ export const RolesTab = ({ roomId }: RolesTabProps) => {
     field: "name" | "description",
     value: string
   ) => {
+    // Optimistic update
+    setRoles((prev) =>
+      prev.map((role) => (role.id === id ? { ...role, [field]: value } : role))
+    );
+
     try {
       const { error } = await supabase
         .from("role_templates")
@@ -100,11 +96,31 @@ export const RolesTab = ({ roomId }: RolesTabProps) => {
         description: "Nepodařilo se uložit změny",
         variant: "destructive",
       });
+      // Revert on error
+      fetchRoles();
+    }
+  };
+
+  const fetchRoles = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("role_templates")
+        .select("*")
+        .eq("room_id", roomId)
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+      setRoles(data || []);
+    } catch (error) {
+      console.error("Error fetching roles:", error);
     }
   };
 
   const handleDeleteRole = async (id: string) => {
     try {
+      // Optimistic update
+      setRoles((prev) => prev.filter((role) => role.id !== id));
+
       const { error } = await supabase
         .from("role_templates")
         .delete()
@@ -113,7 +129,7 @@ export const RolesTab = ({ roomId }: RolesTabProps) => {
       if (error) throw error;
 
       toast({
-        title: "Úspěch",
+        title: "Smazáno",
         description: "Role byla odstraněna",
       });
     } catch (error) {
@@ -123,6 +139,8 @@ export const RolesTab = ({ roomId }: RolesTabProps) => {
         description: "Nepodařilo se odstranit roli",
         variant: "destructive",
       });
+      // Revert on error
+      fetchRoles();
     }
   };
 

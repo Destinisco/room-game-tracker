@@ -92,8 +92,7 @@ export const CreateGameDialog = ({
         .insert({
           room_id: room.id,
           code,
-          status: "running",
-          start_time: new Date().toISOString(),
+          status: "not_started",
           time_limit_minutes: room.time_limit_minutes,
         })
         .select()

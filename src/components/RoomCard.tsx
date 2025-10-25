@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Clock } from "lucide-react";
 import { useEffect, useState } from "react";
+import { RoomMenuDialog } from "./RoomMenuDialog";
 
 interface GameSession {
   id: string;
@@ -16,14 +17,16 @@ interface Room {
   name: string;
   branch: string | null;
   time_limit_minutes: number;
+  edit_code: string | null;
 }
 
 interface RoomCardProps {
   room: Room;
   runningSessions: GameSession[];
+  onUpdate: () => void;
 }
 
-export const RoomCard = ({ room, runningSessions }: RoomCardProps) => {
+export const RoomCard = ({ room, runningSessions, onUpdate }: RoomCardProps) => {
   const [, setTick] = useState(0);
 
   useEffect(() => {
@@ -59,9 +62,17 @@ export const RoomCard = ({ room, runningSessions }: RoomCardProps) => {
                 <p className="text-sm text-muted-foreground">{room.branch}</p>
               )}
             </div>
-            <Badge variant="secondary" className="ml-2">
-              {room.time_limit_minutes} min
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary">
+                {room.time_limit_minutes} min
+              </Badge>
+              <RoomMenuDialog
+                roomId={room.id}
+                roomName={room.name}
+                editCode={room.edit_code}
+                onUpdate={onUpdate}
+              />
+            </div>
           </div>
         </CardHeader>
         <CardContent>

@@ -106,6 +106,13 @@ export const BehaviorCategoriesTab = ({ roomId }: BehaviorCategoriesTabProps) =>
       });
 
       if (error) throw error;
+      
+      toast({
+        title: "Vytvořeno",
+        description: "Kategorie byla přidána",
+      });
+      
+      fetchCategories();
     } catch (error) {
       console.error("Error adding category:", error);
       toast({
@@ -117,6 +124,11 @@ export const BehaviorCategoriesTab = ({ roomId }: BehaviorCategoriesTabProps) =>
   };
 
   const handleUpdateCategoryName = async (id: string, name: string) => {
+    // Optimistic update
+    setCategories((prev) =>
+      prev.map((cat) => (cat.id === id ? { ...cat, name } : cat))
+    );
+
     try {
       const { error } = await supabase
         .from("behavior_categories")
@@ -131,6 +143,7 @@ export const BehaviorCategoriesTab = ({ roomId }: BehaviorCategoriesTabProps) =>
         description: "Nepodařilo se uložit změny",
         variant: "destructive",
       });
+      fetchCategories();
     }
   };
 
@@ -165,6 +178,13 @@ export const BehaviorCategoriesTab = ({ roomId }: BehaviorCategoriesTabProps) =>
       });
 
       if (error) throw error;
+      
+      toast({
+        title: "Vytvořeno",
+        description: "Chování bylo přidáno",
+      });
+      
+      fetchCategories();
     } catch (error) {
       console.error("Error adding behavior item:", error);
       toast({
@@ -176,6 +196,16 @@ export const BehaviorCategoriesTab = ({ roomId }: BehaviorCategoriesTabProps) =>
   };
 
   const handleUpdateBehaviorItem = async (id: string, label: string) => {
+    // Optimistic update
+    setCategories((prev) =>
+      prev.map((cat) => ({
+        ...cat,
+        items: cat.items.map((item) =>
+          item.id === id ? { ...item, label } : item
+        ),
+      }))
+    );
+
     try {
       const { error } = await supabase
         .from("behavior_items")
@@ -190,6 +220,7 @@ export const BehaviorCategoriesTab = ({ roomId }: BehaviorCategoriesTabProps) =>
         description: "Nepodařilo se uložit změny",
         variant: "destructive",
       });
+      fetchCategories();
     }
   };
 

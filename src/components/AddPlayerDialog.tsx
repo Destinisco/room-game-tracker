@@ -210,7 +210,7 @@ export const AddPlayerDialog = ({
                     />
                   </FormControl>
                   <div className="space-y-1 leading-none">
-                    <FormLabel>Souhlas</FormLabel>
+                    <FormLabel>Souhlas se zpracováním herního profilu</FormLabel>
                   </div>
                 </FormItem>
               )}

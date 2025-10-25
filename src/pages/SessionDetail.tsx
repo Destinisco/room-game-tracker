@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Play, Square } from "lucide-react";
+import { ArrowLeft, Play, Pause, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +18,8 @@ interface GameSession {
   start_time: string;
   end_time: string | null;
   time_limit_minutes: number;
+  paused_at: string | null;
+  total_paused_ms: number;
 }
 
 interface Room {
@@ -45,7 +47,7 @@ const SessionDetail = () => {
   const [room, setRoom] = useState<Room | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
-  const [timeRemaining, setTimeRemaining] = useState("");
+  const [timeDisplay, setTimeDisplay] = useState("");
   const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -82,7 +84,6 @@ const SessionDetail = () => {
         if (roomError) throw roomError;
         setRoom(roomData);
 
-        // Fetch players
         const { data: playersData, error: playersError } = await supabase
           .from("players")
           .select("*")
@@ -122,19 +123,43 @@ const SessionDetail = () => {
   }, [id, navigate, toast]);
 
   useEffect(() => {
-    if (!session || session.status !== "running") return;
+    if (!session) return;
 
     const updateTimer = () => {
+      if (session.status === "not_started") {
+        setTimeDisplay("—");
+        return;
+      }
+
+      if (session.status === "finished") {
+        setTimeDisplay("Dokončeno");
+        return;
+      }
+
       const startTime = new Date(session.start_time).getTime();
       const limitMs = session.time_limit_minutes * 60 * 1000;
-      const endTime = startTime + limitMs;
       const now = Date.now();
-      const remaining = Math.max(0, endTime - now);
+      
+      let elapsedMs: number;
+      
+      if (session.status === "paused" && session.paused_at) {
+        const pausedAtTime = new Date(session.paused_at).getTime();
+        elapsedMs = pausedAtTime - startTime - session.total_paused_ms;
+      } else {
+        elapsedMs = now - startTime - session.total_paused_ms;
+      }
 
-      const minutes = Math.floor(remaining / 60000);
-      const seconds = Math.floor((remaining % 60000) / 1000);
+      const remainingMs = limitMs - elapsedMs;
+      
+      const isNegative = remainingMs < 0;
+      const absRemaining = Math.abs(remainingMs);
+      
+      const minutes = Math.floor(absRemaining / 60000);
+      const seconds = Math.floor((absRemaining % 60000) / 1000);
 
-      setTimeRemaining(`${minutes}:${seconds.toString().padStart(2, "0")}`);
+      setTimeDisplay(
+        `${isNegative ? "−" : ""}${minutes}:${seconds.toString().padStart(2, "0")}`
+      );
     };
 
     updateTimer();
@@ -147,25 +172,63 @@ const SessionDetail = () => {
     if (!session) return;
 
     try {
+      let updatePayload: any = {
+        status: "running",
+      };
+
+      if (session.status === "not_started") {
+        updatePayload.start_time = new Date().toISOString();
+      } else if (session.status === "paused" && session.paused_at) {
+        // Continue from pause
+        const pausedDuration = Date.now() - new Date(session.paused_at).getTime();
+        updatePayload.total_paused_ms = session.total_paused_ms + pausedDuration;
+        updatePayload.paused_at = null;
+      }
+
       const { error } = await supabase
         .from("game_sessions")
-        .update({
-          status: "running",
-          start_time: new Date().toISOString(),
-        })
+        .update(updatePayload)
         .eq("id", session.id);
 
       if (error) throw error;
 
       toast({
-        title: "Hra spuštěna",
-        description: "Hra byla úspěšně spuštěna",
+        title: session.status === "paused" ? "Pokračování" : "Hra spuštěna",
+        description: session.status === "paused" ? "Hra pokračuje" : "Hra byla úspěšně spuštěna",
       });
     } catch (error) {
       console.error("Error starting game:", error);
       toast({
         title: "Chyba",
         description: "Nepodařilo se spustit hru",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePauseGame = async () => {
+    if (!session) return;
+
+    try {
+      const { error } = await supabase
+        .from("game_sessions")
+        .update({
+          status: "paused",
+          paused_at: new Date().toISOString(),
+        })
+        .eq("id", session.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Hra pozastavena",
+        description: "Hra byla pozastavena",
+      });
+    } catch (error) {
+      console.error("Error pausing game:", error);
+      toast({
+        title: "Chyba",
+        description: "Nepodařilo se pozastavit hru",
         variant: "destructive",
       });
     }
@@ -211,10 +274,12 @@ const SessionDetail = () => {
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case "pending":
+      case "not_started":
         return "Nepuštěná";
       case "running":
         return "Probíhá";
+      case "paused":
+        return "Pozastavená";
       case "finished":
         return "Dokončená";
       default:
@@ -273,19 +338,19 @@ const SessionDetail = () => {
                 <p className="text-2xl font-bold">{session.code}</p>
               </div>
 
-              {session.status === "running" && (
+              {(session.status === "running" || session.status === "paused") && (
                 <div>
                   <p className="text-sm text-muted-foreground mb-2">
-                    Zbývající čas (z {session.time_limit_minutes} minut)
+                    {session.status === "paused" ? "Čas při pozastavení" : "Zbývající čas"} (z {session.time_limit_minutes} minut)
                   </p>
                   <div
                     className={`text-5xl font-bold tabular-nums ${
-                      timeRemaining.startsWith("−")
+                      timeDisplay.startsWith("−")
                         ? "text-destructive"
                         : "text-primary"
                     }`}
                   >
-                    {timeRemaining}
+                    {timeDisplay}
                   </div>
                 </div>
               )}
@@ -303,17 +368,28 @@ const SessionDetail = () => {
 
           {/* Game controls */}
           <div className="flex gap-2">
-            {session.status === "pending" && (
+            {(session.status === "not_started" || session.status === "paused") && (
               <Button
                 size="lg"
                 className="flex-1"
                 onClick={handleStartGame}
               >
                 <Play className="w-5 h-5 mr-2" />
-                Spustit hru
+                {session.status === "paused" ? "Pokračovat" : "Spustit hru"}
               </Button>
             )}
             {session.status === "running" && (
+              <Button
+                variant="secondary"
+                size="lg"
+                className="flex-1"
+                onClick={handlePauseGame}
+              >
+                <Pause className="w-5 h-5 mr-2" />
+                Pauza
+              </Button>
+            )}
+            {(session.status === "running" || session.status === "paused") && (
               <Button
                 variant="destructive"
                 size="lg"
@@ -351,35 +427,25 @@ const SessionDetail = () => {
                   <div
                     className={`grid gap-4 ${
                       expandedPlayerId
-                        ? "grid-cols-1 md:grid-cols-4"
-                        : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+                        ? "grid-cols-1"
+                        : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
                     }`}
                   >
-                    {players.map((player) => (
-                      <div
-                        key={player.id}
-                        className={
-                          expandedPlayerId && expandedPlayerId !== player.id
-                            ? "md:col-span-1"
-                            : expandedPlayerId === player.id
-                            ? "md:col-span-3"
-                            : ""
-                        }
-                      >
-                        {expandedPlayerId === player.id ? (
-                          <PlayerObservation
-                            playerId={player.id}
-                            roomId={room.id}
-                          />
-                        ) : (
-                          <PlayerCard
-                            player={player}
-                            isExpanded={false}
-                            onClick={() => setExpandedPlayerId(player.id)}
-                          />
-                        )}
-                      </div>
-                    ))}
+                    {expandedPlayerId ? (
+                      <PlayerObservation
+                        playerId={expandedPlayerId}
+                        roomId={room.id}
+                      />
+                    ) : (
+                      players.map((player) => (
+                        <PlayerCard
+                          key={player.id}
+                          player={player}
+                          isExpanded={false}
+                          onClick={() => setExpandedPlayerId(player.id)}
+                        />
+                      ))
+                    )}
                   </div>
                   {expandedPlayerId && (
                     <Button

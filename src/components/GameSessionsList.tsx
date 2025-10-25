@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SessionMenuDialog } from "./SessionMenuDialog";
 
 interface GameSession {
   id: string;
@@ -33,8 +34,7 @@ export const GameSessionsList = ({ roomId }: GameSessionsListProps) => {
   );
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchSessions = async () => {
+  const fetchSessions = async () => {
       try {
         const { data, error } = await supabase
           .from("game_sessions")
@@ -51,6 +51,7 @@ export const GameSessionsList = ({ roomId }: GameSessionsListProps) => {
       }
     };
 
+  useEffect(() => {
     fetchSessions();
 
     const channel = supabase
@@ -130,7 +131,7 @@ export const GameSessionsList = ({ roomId }: GameSessionsListProps) => {
             <Link key={session.id} to={`/sessions/${session.id}`}>
               <Card className="hover:border-primary transition-colors cursor-pointer">
                 <CardContent className="flex items-center justify-between py-4">
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 flex-1">
                     <div>
                       <p className="font-semibold">{session.code}</p>
                       <p className="text-sm text-muted-foreground">
@@ -142,9 +143,16 @@ export const GameSessionsList = ({ roomId }: GameSessionsListProps) => {
                       </p>
                     </div>
                   </div>
-                  <Badge variant={session.status === "running" ? "default" : "secondary"}>
-                    {session.status === "running" ? "Probíhá" : "Ukončená"}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={session.status === "running" ? "default" : "secondary"}>
+                      {session.status === "running" ? "Probíhá" : "Ukončená"}
+                    </Badge>
+                    <SessionMenuDialog
+                      sessionId={session.id}
+                      currentCode={session.code}
+                      onUpdate={() => fetchSessions()}
+                    />
+                  </div>
                 </CardContent>
               </Card>
             </Link>
