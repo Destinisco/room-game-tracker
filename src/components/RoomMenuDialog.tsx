@@ -100,7 +100,7 @@ export const RoomMenuDialog = ({
       setCode("");
       
       if (action === "edit") {
-        navigate(`/rooms/${roomId}`);
+        navigate(`/rooms/${roomId}?edit=true`);
       } else if (action === "delete") {
         setIsDeleteOpen(true);
       }

@@ -141,13 +141,23 @@ export const SessionMenuDialog = ({
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild onClick={(e) => e.preventDefault()}>
-          <Button variant="ghost" size="icon" className="h-8 w-8">
+        <DropdownMenuTrigger asChild>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+          >
             <MoreVertical className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => {
+        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+          <DropdownMenuItem onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
             setNewCode(currentCode);
             setIsEditOpen(true);
           }}>
@@ -155,7 +165,11 @@ export const SessionMenuDialog = ({
             Změnit kód hry
           </DropdownMenuItem>
           <DropdownMenuItem 
-            onClick={() => setIsDeleteOpen(true)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsDeleteOpen(true);
+            }}
             className="text-destructive"
           >
             <Trash2 className="mr-2 h-4 w-4" />

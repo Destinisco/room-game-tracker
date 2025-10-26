@@ -20,6 +20,7 @@ interface GameSession {
   time_limit_minutes: number;
   paused_at: string | null;
   total_paused_ms: number;
+  total_game_time_ms?: number;
 }
 
 interface Room {
@@ -185,6 +186,12 @@ const SessionDetail = () => {
         updatePayload.paused_at = null;
       }
 
+      // Optimistic update
+      setSession({
+        ...session,
+        ...updatePayload,
+      });
+
       const { error } = await supabase
         .from("game_sessions")
         .update(updatePayload)
@@ -209,12 +216,21 @@ const SessionDetail = () => {
   const handlePauseGame = async () => {
     if (!session) return;
 
+    const pausedAt = new Date().toISOString();
+
+    // Optimistic update
+    setSession({
+      ...session,
+      status: "paused",
+      paused_at: pausedAt,
+    });
+
     try {
       const { error } = await supabase
         .from("game_sessions")
         .update({
           status: "paused",
-          paused_at: new Date().toISOString(),
+          paused_at: pausedAt,
         })
         .eq("id", session.id);
 
@@ -237,12 +253,25 @@ const SessionDetail = () => {
   const handleEndGame = async () => {
     if (!session) return;
 
+    const endTime = new Date().toISOString();
+    const startTime = new Date(session.start_time).getTime();
+    const endTimeMs = new Date(endTime).getTime();
+    const totalGameTimeMs = endTimeMs - startTime - session.total_paused_ms;
+
+    // Optimistic update
+    setSession({
+      ...session,
+      status: "finished",
+      end_time: endTime,
+    });
+
     try {
       const { error } = await supabase
         .from("game_sessions")
         .update({
           status: "finished",
-          end_time: new Date().toISOString(),
+          end_time: endTime,
+          total_game_time_ms: totalGameTimeMs,
         })
         .eq("id", session.id);
 
@@ -361,6 +390,17 @@ const SessionDetail = () => {
                   <p className="text-lg font-medium">
                     {new Date(session.end_time).toLocaleString("cs-CZ")}
                   </p>
+                  {session.total_game_time_ms !== undefined && (
+                    <div className="mt-2">
+                      <p className="text-sm text-muted-foreground">Celkový čas</p>
+                      <p className="text-xl font-semibold">
+                        {Math.floor(session.total_game_time_ms / 60000)}:
+                        {Math.floor((session.total_game_time_ms % 60000) / 1000)
+                          .toString()
+                          .padStart(2, "0")}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>

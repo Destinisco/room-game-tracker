@@ -20,6 +20,7 @@ interface GameSession {
   status: string;
   start_time: string;
   created_at: string;
+  total_game_time_ms?: number;
 }
 
 interface GameSessionsListProps {
@@ -141,11 +142,33 @@ export const GameSessionsList = ({ roomId }: GameSessionsListProps) => {
                           { locale: cs }
                         )}
                       </p>
+                      {session.status === "finished" && session.total_game_time_ms !== undefined && (
+                        <p className="text-sm text-muted-foreground">
+                          Celkový čas: {Math.floor(session.total_game_time_ms / 60000)}:
+                          {Math.floor((session.total_game_time_ms % 60000) / 1000)
+                            .toString()
+                            .padStart(2, "0")}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant={session.status === "running" ? "default" : "secondary"}>
-                      {session.status === "running" ? "Probíhá" : "Ukončená"}
+                    <Badge variant={
+                      session.status === "running" 
+                        ? "default" 
+                        : session.status === "paused"
+                        ? "secondary"
+                        : session.status === "finished"
+                        ? "outline"
+                        : "secondary"
+                    }>
+                      {session.status === "running" 
+                        ? "Probíhá" 
+                        : session.status === "paused"
+                        ? "Pozastavená"
+                        : session.status === "finished"
+                        ? "Dokončená"
+                        : "Nepuštěná"}
                     </Badge>
                     <SessionMenuDialog
                       sessionId={session.id}

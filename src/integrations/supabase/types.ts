@@ -83,6 +83,7 @@ export type Database = {
           start_time: string
           status: string
           time_limit_minutes: number
+          total_game_time_ms: number | null
           total_paused_ms: number
         }
         Insert: {
@@ -95,6 +96,7 @@ export type Database = {
           start_time?: string
           status?: string
           time_limit_minutes: number
+          total_game_time_ms?: number | null
           total_paused_ms?: number
         }
         Update: {
@@ -107,6 +109,7 @@ export type Database = {
           start_time?: string
           status?: string
           time_limit_minutes?: number
+          total_game_time_ms?: number | null
           total_paused_ms?: number
         }
         Relationships: [

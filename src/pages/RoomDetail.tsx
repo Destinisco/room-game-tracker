@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Plus, Save, Trash2 } from "lucide-react";
+import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
+import { ArrowLeft, Plus, Save, Trash2, Key } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { CreateGameDialog } from "@/components/CreateGameDialog";
 import { GameSessionsList } from "@/components/GameSessionsList";
 import { RolesTab } from "@/components/RolesTab";
@@ -23,17 +30,22 @@ interface Room {
   description: string | null;
   time_limit_minutes: number;
   band_colors: string[];
+  edit_code?: string | null;
 }
 
 const RoomDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isCreateGameOpen, setIsCreateGameOpen] = useState(false);
+  const [isEditCodeDialogOpen, setIsEditCodeDialogOpen] = useState(false);
+  const [editCodeInput, setEditCodeInput] = useState("");
   const [newColor, setNewColor] = useState("");
+  const isEditMode = searchParams.get("edit") === "true";
 
   const [formData, setFormData] = useState({
     name: "",
@@ -179,6 +191,42 @@ const RoomDetail = () => {
 
   if (!room) return null;
 
+  const handleSetEditCode = async () => {
+    if (!editCodeInput.trim()) {
+      toast({
+        title: "Chyba",
+        description: "Zadejte kód",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("rooms")
+        .update({ edit_code: editCodeInput })
+        .eq("id", room.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Kód nastaven",
+        description: "Kód pro editaci byl nastaven",
+      });
+
+      setRoom({ ...room, edit_code: editCodeInput });
+      setIsEditCodeDialogOpen(false);
+      setEditCodeInput("");
+    } catch (error) {
+      console.error("Error setting edit code:", error);
+      toast({
+        title: "Chyba",
+        description: "Nepodařilo se nastavit kód",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 max-w-5xl">
@@ -189,27 +237,34 @@ const RoomDetail = () => {
               Zpět
             </Button>
           </Link>
-          <div className="flex gap-2">
-            <DeleteRoomDialog roomId={room.id} roomName={room.name} />
-            <Button onClick={handleSave} disabled={saving}>
-              <Save className="w-4 h-4 mr-2" />
-              {saving ? "Ukládání..." : "Uložit místnost"}
-            </Button>
-          </div>
+          {isEditMode && (
+            <div className="flex gap-2">
+              <DeleteRoomDialog roomId={room.id} roomName={room.name} />
+              <Button onClick={handleSave} disabled={saving}>
+                <Save className="w-4 h-4 mr-2" />
+                {saving ? "Ukládání..." : "Uložit místnost"}
+              </Button>
+            </div>
+          )}
         </div>
 
-        <h1 className="text-3xl font-bold mb-6">Upravit místnost</h1>
+        <h1 className="text-3xl font-bold mb-6">
+          {isEditMode ? "Upravit místnost" : room.name}
+        </h1>
 
         <Tabs defaultValue="basic" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
-            <TabsTrigger value="basic">Základní info</TabsTrigger>
-            <TabsTrigger value="roles">Role</TabsTrigger>
-            <TabsTrigger value="categories">Kategorie chování</TabsTrigger>
-          </TabsList>
+          {isEditMode && (
+            <TabsList className="grid w-full grid-cols-3 mb-6">
+              <TabsTrigger value="basic">Základní info</TabsTrigger>
+              <TabsTrigger value="roles">Role</TabsTrigger>
+              <TabsTrigger value="categories">Kategorie chování</TabsTrigger>
+            </TabsList>
+          )}
 
           <TabsContent value="basic" className="space-y-6">
-            <Card>
-              <CardContent className="pt-6 space-y-4">
+            {isEditMode && (
+              <Card>
+                <CardContent className="pt-6 space-y-4">
                 <div>
                   <Label htmlFor="name">Název místnosti *</Label>
                   <Input
@@ -300,8 +355,27 @@ const RoomDetail = () => {
                     ))}
                   </div>
                 </div>
+
+                <div>
+                  <Label>Kód pro editaci</Label>
+                  <div className="flex gap-2 mt-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsEditCodeDialogOpen(true)}
+                    >
+                      <Key className="w-4 h-4 mr-2" />
+                      {room.edit_code ? "Změnit kód" : "Nastavit kód"}
+                    </Button>
+                    {room.edit_code && (
+                      <p className="text-sm text-muted-foreground flex items-center">
+                        Kód je nastaven
+                      </p>
+                    )}
+                  </div>
+                </div>
               </CardContent>
             </Card>
+            )}
 
             <div className="mt-8">
               <div className="flex items-center justify-between mb-4">
@@ -315,13 +389,17 @@ const RoomDetail = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="roles">
-            <RolesTab roomId={room.id} />
-          </TabsContent>
+          {isEditMode && (
+            <>
+              <TabsContent value="roles">
+                <RolesTab roomId={room.id} />
+              </TabsContent>
 
-          <TabsContent value="categories">
-            <BehaviorCategoriesTab roomId={room.id} />
-          </TabsContent>
+              <TabsContent value="categories">
+                <BehaviorCategoriesTab roomId={room.id} />
+              </TabsContent>
+            </>
+          )}
         </Tabs>
       </div>
 
@@ -330,6 +408,37 @@ const RoomDetail = () => {
         onOpenChange={setIsCreateGameOpen}
         room={room}
       />
+
+      {/* Edit Code Dialog */}
+      <Dialog open={isEditCodeDialogOpen} onOpenChange={setIsEditCodeDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {room.edit_code ? "Změnit kód pro editaci" : "Nastavit kód pro editaci"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-code">Kód</Label>
+              <Input
+                id="edit-code"
+                type="password"
+                value={editCodeInput}
+                onChange={(e) => setEditCodeInput(e.target.value)}
+                placeholder="Zadejte kód"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditCodeDialogOpen(false)}>
+              Zrušit
+            </Button>
+            <Button onClick={handleSetEditCode}>
+              {room.edit_code ? "Změnit" : "Nastavit"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

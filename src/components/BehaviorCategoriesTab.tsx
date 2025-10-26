@@ -225,6 +225,14 @@ export const BehaviorCategoriesTab = ({ roomId }: BehaviorCategoriesTabProps) =>
   };
 
   const handleDeleteBehaviorItem = async (id: string) => {
+    // Optimistic update
+    setCategories((prev) =>
+      prev.map((cat) => ({
+        ...cat,
+        items: cat.items.filter((item) => item.id !== id),
+      }))
+    );
+
     try {
       const { error } = await supabase
         .from("behavior_items")
@@ -232,6 +240,11 @@ export const BehaviorCategoriesTab = ({ roomId }: BehaviorCategoriesTabProps) =>
         .eq("id", id);
 
       if (error) throw error;
+
+      toast({
+        title: "Smazáno",
+        description: "Chování bylo odstraněno",
+      });
     } catch (error) {
       console.error("Error deleting behavior item:", error);
       toast({
@@ -239,6 +252,7 @@ export const BehaviorCategoriesTab = ({ roomId }: BehaviorCategoriesTabProps) =>
         description: "Nepodařilo se odstranit chování",
         variant: "destructive",
       });
+      fetchCategories();
     }
   };
 

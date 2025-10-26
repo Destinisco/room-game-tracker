@@ -52,51 +52,49 @@ export const RoomCard = ({ room, runningSessions, onUpdate }: RoomCardProps) => 
   };
 
   return (
-    <Link to={`/rooms/${room.id}`}>
-      <Card className="hover:border-primary transition-colors cursor-pointer h-full">
-        <CardHeader>
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <CardTitle className="text-xl mb-1">{room.name}</CardTitle>
-              {room.branch && (
-                <p className="text-sm text-muted-foreground">{room.branch}</p>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary">
-                {room.time_limit_minutes} min
-              </Badge>
-              <RoomMenuDialog
-                roomId={room.id}
-                roomName={room.name}
-                editCode={room.edit_code}
-                onUpdate={onUpdate}
-              />
-            </div>
+    <Card className="hover:border-primary transition-colors h-full">
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <Link to={`/rooms/${room.id}`} className="flex-1 cursor-pointer">
+            <CardTitle className="text-xl mb-1">{room.name}</CardTitle>
+            {room.branch && (
+              <p className="text-sm text-muted-foreground">{room.branch}</p>
+            )}
+          </Link>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary">
+              {room.time_limit_minutes} min
+            </Badge>
+            <RoomMenuDialog
+              roomId={room.id}
+              roomName={room.name}
+              editCode={room.edit_code}
+              onUpdate={onUpdate}
+            />
           </div>
-        </CardHeader>
-        <CardContent>
-          {runningSessions.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground mb-2">
-                Probíhající hry:
-              </p>
-              {runningSessions.map((session) => (
-                <div
-                  key={session.id}
-                  className="flex items-center gap-2 p-2 bg-secondary/50 rounded-md"
-                >
-                  <Clock className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-medium">{session.code}</span>
-                  <span className="text-sm text-muted-foreground ml-auto">
-                    zbývá {formatTimeRemaining(session)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </Link>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {runningSessions.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-muted-foreground mb-2">
+              Probíhající hry:
+            </p>
+            {runningSessions.map((session) => (
+              <div
+                key={session.id}
+                className="flex items-center gap-2 p-2 bg-secondary/50 rounded-md"
+              >
+                <Clock className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium">{session.code}</span>
+                <span className="text-sm text-muted-foreground ml-auto">
+                  zbývá {formatTimeRemaining(session)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
