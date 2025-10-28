@@ -103,7 +103,7 @@ const SessionDetail = () => {
     fetchData();
 
     const channel = supabase
-      .channel(`session-${id}`)
+      .channel(`session:${id}`)
       .on(
         "postgres_changes",
         {
@@ -114,6 +114,27 @@ const SessionDetail = () => {
         },
         (payload) => {
           setSession(payload.new as GameSession);
+        }
+      )
+      .on(
+        "broadcast",
+        { event: "player:intake_update" },
+        (payload) => {
+          // Realtime update from tablet
+          console.log("Player intake update:", payload);
+          fetchPlayers();
+        }
+      )
+      .on(
+        "broadcast",
+        { event: "player:intake_submit" },
+        (payload) => {
+          console.log("Player intake submit:", payload);
+          toast({
+            title: "Data aktualizována",
+            description: "Hráč byl aktualizován z tabletu",
+          });
+          fetchPlayers();
         }
       )
       .subscribe();
@@ -258,11 +279,12 @@ const SessionDetail = () => {
     const endTimeMs = new Date(endTime).getTime();
     const totalGameTimeMs = endTimeMs - startTime - session.total_paused_ms;
 
-    // Optimistic update
+    // Optimistic update with totalGameTimeMs
     setSession({
       ...session,
       status: "finished",
       end_time: endTime,
+      total_game_time_ms: totalGameTimeMs,
     });
 
     try {
@@ -279,7 +301,7 @@ const SessionDetail = () => {
 
       toast({
         title: "Hra ukončena",
-        description: "Hra byla úspěšně ukončena",
+        description: `Celkový čas: ${Math.floor(totalGameTimeMs / 60000)}:${Math.floor((totalGameTimeMs % 60000) / 1000).toString().padStart(2, "0")}`,
       });
     } catch (error) {
       console.error("Error ending game:", error);

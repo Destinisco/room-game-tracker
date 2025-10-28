@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-} from "@/components/ui/form";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Select,
   SelectContent,
@@ -15,24 +14,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-interface RoleTemplate {
+interface Role {
   id: string;
   name: string;
   description: string | null;
-}
-
-interface BehaviorCategory {
-  id: string;
-  name: string;
-  items: BehaviorItem[];
 }
 
 interface BehaviorItem {
@@ -40,13 +27,30 @@ interface BehaviorItem {
   label: string;
 }
 
-interface ObservationFormData {
-  language: "cs" | "en";
-  primaryRoleId?: string;
-  checks: { [key: string]: boolean | undefined };
-  notes: string;
-  bandColor?: string;
-  gender?: string;
+interface Category {
+  id: string;
+  name: string;
+  items: BehaviorItem[];
+}
+
+interface Observation {
+  id: string;
+  primary_role_id: string | null;
+  checks: Record<string, string>;
+  language: string;
+  notes: string | null;
+}
+
+interface Player {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  full_name: string | null;
+  email: string | null;
+  phone: string | null;
+  band_color: string | null;
+  gender: string | null;
+  consent: boolean;
 }
 
 interface PlayerObservationProps {
@@ -54,111 +58,138 @@ interface PlayerObservationProps {
   roomId: string;
 }
 
-export const PlayerObservation = ({
-  playerId,
-  roomId,
-}: PlayerObservationProps) => {
+export const PlayerObservation = ({ playerId, roomId }: PlayerObservationProps) => {
   const { toast } = useToast();
-  const [roles, setRoles] = useState<RoleTemplate[]>([]);
-  const [categories, setCategories] = useState<BehaviorCategory[]>([]);
-  const [observationId, setObservationId] = useState<string | null>(null);
-  const [playerInfo, setPlayerInfo] = useState<{ band_color: string | null; gender: string | null }>();
-
-  const form = useForm<ObservationFormData>({
-    defaultValues: {
-      language: "cs",
-      primaryRoleId: "",
-      checks: {},
-      notes: "",
-    },
-  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [player, setPlayer] = useState<Player | null>(null);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [observation, setObservation] = useState<Observation | null>(null);
+  const [checks, setChecks] = useState<Record<string, string>>({});
+  const [primaryRoleId, setPrimaryRoleId] = useState<string>("");
+  const [language, setLanguage] = useState<string>("cs");
+  const [notes, setNotes] = useState<string>("");
+  const [consentBlocked, setConsentBlocked] = useState(false);
 
   useEffect(() => {
-    fetchRolesAndCategories();
-    fetchObservation();
-    fetchPlayerInfo();
-  }, [playerId, roomId]);
+    const fetchData = async () => {
+      try {
+        const { data: playerData, error: playerError } = await supabase
+          .from("players")
+          .select("*")
+          .eq("id", playerId)
+          .single();
 
-  const fetchPlayerInfo = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("players")
-        .select("band_color, gender")
-        .eq("id", playerId)
-        .single();
+        if (playerError) throw playerError;
+        setPlayer(playerData);
+        setConsentBlocked(!playerData.consent);
 
-      if (error) throw error;
-      setPlayerInfo(data);
-    } catch (error) {
-      console.error("Error fetching player info:", error);
-    }
-  };
+        const { data: rolesData, error: rolesError } = await supabase
+          .from("role_templates")
+          .select("*")
+          .eq("room_id", roomId)
+          .order("created_at", { ascending: true });
 
-  const fetchRolesAndCategories = async () => {
-    try {
-      const { data: rolesData } = await supabase
-        .from("role_templates")
-        .select("*")
-        .eq("room_id", roomId);
+        if (rolesError) throw rolesError;
+        setRoles(rolesData || []);
 
-      const { data: categoriesData } = await supabase
-        .from("behavior_categories")
-        .select("*, behavior_items(*)")
-        .eq("room_id", roomId);
+        const { data: categoriesData, error: categoriesError } = await supabase
+          .from("behavior_categories")
+          .select(`
+            id,
+            name,
+            behavior_items (
+              id,
+              label
+            )
+          `)
+          .eq("room_id", roomId)
+          .order("created_at", { ascending: true });
 
-      if (rolesData) setRoles(rolesData);
-      if (categoriesData) {
+        if (categoriesError) throw categoriesError;
+
         const formattedCategories = categoriesData.map((cat: any) => ({
           id: cat.id,
           name: cat.name,
           items: cat.behavior_items || [],
         }));
+
         setCategories(formattedCategories);
-      }
-    } catch (error) {
-      console.error("Error fetching data:", error);
-    }
-  };
 
-  const fetchObservation = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("player_observations")
-        .select("*")
-        .eq("player_id", playerId)
-        .maybeSingle();
+        const { data: observationData, error: observationError } = await supabase
+          .from("player_observations")
+          .select("*")
+          .eq("player_id", playerId)
+          .maybeSingle();
 
-      if (error) throw error;
+        if (observationError && observationError.code !== "PGRST116") {
+          throw observationError;
+        }
 
-      if (data) {
-        setObservationId(data.id);
-        form.reset({
-          language: data.language as "cs" | "en",
-          primaryRoleId: data.primary_role_id || "",
-          checks: (data.checks as { [key: string]: boolean | undefined }) || {},
-          notes: data.notes || "",
+        if (observationData) {
+          setObservation(observationData as Observation);
+          setChecks((observationData.checks as Record<string, string>) || {});
+          setPrimaryRoleId(observationData.primary_role_id || "");
+          setLanguage(observationData.language || "cs");
+          setNotes(observationData.notes || "");
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        toast({
+          title: "Chyba",
+          description: "Nepodařilo se načíst data",
+          variant: "destructive",
         });
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Error fetching observation:", error);
-    }
+    };
+
+    fetchData();
+  }, [playerId, roomId, toast]);
+
+  const handleCheckChange = (itemId: string, value: string) => {
+    setChecks((prev) => ({
+      ...prev,
+      [itemId]: value,
+    }));
   };
 
-  const onSubmit = async (data: ObservationFormData) => {
+  const getCategoryCount = (category: Category) => {
+    const yesCount = category.items.filter((item) => checks[item.id] === "yes").length;
+    const totalCount = category.items.length;
+    return { yesCount, totalCount };
+  };
+
+  const getSelectedBehaviors = () => {
+    const selected: { category: string; item: string }[] = [];
+    categories.forEach((category) => {
+      category.items.forEach((item) => {
+        if (checks[item.id] === "yes") {
+          selected.push({ category: category.name, item: item.label });
+        }
+      });
+    });
+    return selected;
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
     try {
       const payload = {
         player_id: playerId,
-        language: data.language,
-        primary_role_id: data.primaryRoleId || null,
-        checks: data.checks,
-        notes: data.notes,
+        primary_role_id: primaryRoleId || null,
+        checks,
+        language,
+        notes,
       };
 
-      if (observationId) {
+      if (observation) {
         const { error } = await supabase
           .from("player_observations")
           .update(payload)
-          .eq("id", observationId);
+          .eq("id", observation.id);
         if (error) throw error;
       } else {
         const { data: newObs, error } = await supabase
@@ -167,17 +198,13 @@ export const PlayerObservation = ({
           .select()
           .single();
         if (error) throw error;
-        if (newObs) setObservationId(newObs.id);
+        if (newObs) setObservation(newObs as Observation);
       }
 
       toast({
         title: "Uloženo",
         description: "Pozorování bylo úspěšně uloženo",
       });
-      
-      // Refresh data but keep expanded
-      fetchObservation();
-      fetchPlayerInfo();
     } catch (error) {
       console.error("Error saving observation:", error);
       toast({
@@ -185,204 +212,176 @@ export const PlayerObservation = ({
         description: "Nepodařilo se uložit pozorování",
         variant: "destructive",
       });
+    } finally {
+      setSaving(false);
     }
   };
 
-  const getCategoryCount = (items: BehaviorItem[]) => {
-    const checks = form.watch("checks");
-    const yesCount = items.filter((item) => checks[item.id] === true).length;
-    return `${yesCount}/${items.length}`;
-  };
+  if (loading) {
+    return <div className="text-center py-8">Načítání...</div>;
+  }
 
-  const getYesItems = () => {
-    const checks = form.watch("checks");
-    const yesItems: { category: string; label: string }[] = [];
-    
-    categories.forEach((category) => {
-      category.items.forEach((item) => {
-        if (checks[item.id] === true) {
-          yesItems.push({ category: category.name, label: item.label });
-        }
-      });
-    });
-    
-    return yesItems;
-  };
+  const selectedBehaviors = getSelectedBehaviors();
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Pozorování hráče</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="language"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Jazyk výstupu</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
+    <TooltipProvider>
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Detail hráče</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {player && (
+            <div className="space-y-3 p-4 bg-muted rounded-lg">
+              <div className="flex items-center gap-2">
+                {player.band_color && (
+                  <Badge variant="outline" className="text-base">
+                    {player.band_color}
+                  </Badge>
+                )}
+                <h3 className="text-xl font-semibold">
+                  {player.first_name} {player.last_name}
+                </h3>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+                {player.email && <div>Email: {player.email}</div>}
+                {player.phone && <div>Telefon: {player.phone}</div>}
+                {player.gender && <div>Pohlaví: {player.gender}</div>}
+                <div>
+                  Souhlas: {player.consent ? (
+                    <Badge variant="default" className="ml-1">Ano</Badge>
+                  ) : (
+                    <Badge variant="destructive" className="ml-1">Ne</Badge>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {consentBlocked && (
+            <div className="p-4 bg-destructive/10 border border-destructive rounded-lg">
+              <p className="text-sm text-destructive font-medium">
+                ⚠️ Pozorování a analýza jsou zablokované, protože hráč neposkytl souhlas se zpracováním herního profilu.
+              </p>
+            </div>
+          )}
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className={consentBlocked ? "pointer-events-none opacity-50" : ""}>
+                <div className="space-y-2">
+                  <Label>Jazyk výstupu</Label>
+                  <Select value={language} onValueChange={setLanguage} disabled={consentBlocked}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Vyberte jazyk" />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="cs">Čeština</SelectItem>
                       <SelectItem value="en">Angličtina</SelectItem>
                     </SelectContent>
                   </Select>
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="primaryRoleId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Hlavní archetyp/role (nepovinné)</FormLabel>
-                  <RadioGroup
-                    onValueChange={field.onChange}
-                    value={field.value}
-                    className="grid grid-cols-2 gap-4"
-                  >
-                    {roles.map((role) => (
-                      <div key={role.id} className="flex items-start space-x-2">
-                        <RadioGroupItem value={role.id} id={role.id} />
-                        <div className="space-y-1">
-                          <Label htmlFor={role.id} className="font-medium">
-                            {role.name}
-                          </Label>
-                          {role.description && (
-                            <p className="text-sm text-muted-foreground">
-                              {role.description}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </RadioGroup>
-                </FormItem>
-              )}
-            />
-
-            <div className="space-y-4">
-              <h3 className="font-semibold">Pozorované chování</h3>
-              {categories.map((category) => (
-                <Card key={category.id}>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-base">{category.name}</CardTitle>
-                      <Badge variant="secondary">
-                        {getCategoryCount(category.items)}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    {category.items.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center justify-between gap-4"
-                      >
-                        <span className="text-sm flex-1">{item.label}</span>
-                        <div className="flex gap-1">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant={
-                              form.watch(`checks.${item.id}`) === true
-                                ? "default"
-                                : "outline"
-                            }
-                            onClick={() => {
-                              const current = form.getValues("checks");
-                              form.setValue("checks", {
-                                ...current,
-                                [item.id]: current[item.id] === true ? undefined : true,
-                              });
-                            }}
-                            className="min-w-[60px]"
-                          >
-                            Ano
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant={
-                              form.watch(`checks.${item.id}`) === false
-                                ? "destructive"
-                                : "outline"
-                            }
-                            onClick={() => {
-                              const current = form.getValues("checks");
-                              form.setValue("checks", {
-                                ...current,
-                                [item.id]: current[item.id] === false ? undefined : false,
-                              });
-                            }}
-                            className="min-w-[60px]"
-                          >
-                            Ne
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {/* Souhrn */}
-            <Card className="bg-muted/50">
-              <CardHeader>
-                <CardTitle className="text-base">Souhrn</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex gap-2 text-sm">
-                  <span className="font-medium">Barva:</span>
-                  <span>{playerInfo?.band_color || "—"}</span>
-                  <span className="mx-2">•</span>
-                  <span className="font-medium">Pohlaví:</span>
-                  <span>{playerInfo?.gender || "—"}</span>
                 </div>
-                
-                {getYesItems().length > 0 && (
-                  <div className="text-sm">
-                    <p className="font-medium mb-2">Vybrané (Ano):</p>
-                    <ul className="space-y-1">
-                      {getYesItems().map((item, idx) => (
-                        <li key={idx} className="text-muted-foreground">
-                          {item.category} — {item.label}
-                        </li>
+
+                <div className="space-y-2 mt-4">
+                  <Label>Hlavní role</Label>
+                  <Select value={primaryRoleId} onValueChange={setPrimaryRoleId} disabled={consentBlocked}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Vyberte hlavní roli" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roles.map((role) => (
+                        <SelectItem key={role.id} value={role.id}>
+                          {role.name}
+                        </SelectItem>
                       ))}
-                    </ul>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-4 mt-6">
+                  <h3 className="font-semibold text-lg">Pozorované chování</h3>
+                  {categories.map((category) => {
+                    const { yesCount, totalCount } = getCategoryCount(category);
+                    return (
+                      <Card key={category.id}>
+                        <CardHeader className="pb-3">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-base">{category.name}</CardTitle>
+                            <Badge variant="secondary">{yesCount}/{totalCount}</Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          {category.items.map((item) => (
+                            <div key={item.id} className="flex items-center justify-between">
+                              <label className="text-sm font-medium">
+                                {item.label}
+                              </label>
+                              <ToggleGroup
+                                type="single"
+                                value={checks[item.id] || ""}
+                                onValueChange={(value) => handleCheckChange(item.id, value)}
+                                disabled={consentBlocked}
+                              >
+                                <ToggleGroupItem value="yes" aria-label="Ano">
+                                  Ano
+                                </ToggleGroupItem>
+                                <ToggleGroupItem value="no" aria-label="Ne">
+                                  Ne
+                                </ToggleGroupItem>
+                              </ToggleGroup>
+                            </div>
+                          ))}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+
+                {selectedBehaviors.length > 0 && (
+                  <div className="space-y-2 p-4 bg-muted rounded-lg mt-4">
+                    <h4 className="font-semibold">Souhrn</h4>
+                    {player && (
+                      <div className="text-sm space-y-1">
+                        {player.band_color && <div>Barva: {player.band_color}</div>}
+                        {player.gender && <div>Pohlaví: {player.gender}</div>}
+                      </div>
+                    )}
+                    <div className="mt-2">
+                      <p className="text-sm font-medium mb-1">Vybrané (Ano):</p>
+                      <div className="text-sm space-y-1">
+                        {selectedBehaviors.map((behavior, index) => (
+                          <div key={index}>
+                            {behavior.category} – {behavior.item}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
-              </CardContent>
-            </Card>
 
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Dodatečné poznámky</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} rows={4} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+                <div className="space-y-2 mt-4">
+                  <Label>Poznámky</Label>
+                  <Textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Volitelné poznámky k pozorování..."
+                    rows={4}
+                    disabled={consentBlocked}
+                  />
+                </div>
 
-            <Button type="submit" className="w-full">
-              Uložit
-            </Button>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+                <Button onClick={handleSave} disabled={saving || consentBlocked} className="w-full mt-4">
+                  {saving ? "Ukládání..." : "Uložit pozorování"}
+                </Button>
+              </div>
+            </TooltipTrigger>
+            {consentBlocked && (
+              <TooltipContent>
+                <p>Vyžaduje souhlas se zpracováním herního profilu</p>
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </CardContent>
+      </Card>
+    </TooltipProvider>
   );
 };
