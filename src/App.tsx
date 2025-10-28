@@ -10,6 +10,8 @@ import SessionDetail from "./pages/SessionDetail";
 import Tablet from "./pages/Tablet";
 import TabletSession from "./pages/TabletSession";
 import Login from "./pages/Login";
+import SetupAdmin from "./pages/SetupAdmin";
+import AdminUsers from "./pages/AdminUsers";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,9 +24,11 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/setup-admin" element={<SetupAdmin />} />
           <Route path="/" element={<AuthGuard allowedRoles={["admin"]}><Dashboard /></AuthGuard>} />
           <Route path="/rooms/:id" element={<AuthGuard allowedRoles={["admin"]}><RoomDetail /></AuthGuard>} />
           <Route path="/sessions/:id" element={<AuthGuard allowedRoles={["admin"]}><SessionDetail /></AuthGuard>} />
+          <Route path="/admin/users" element={<AuthGuard allowedRoles={["admin"]}><AdminUsers /></AuthGuard>} />
           <Route path="/tablet" element={<AuthGuard allowedRoles={["admin", "editor"]}><Tablet /></AuthGuard>} />
           <Route path="/tablet/session/:id" element={<AuthGuard allowedRoles={["admin", "editor"]}><TabletSession /></AuthGuard>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

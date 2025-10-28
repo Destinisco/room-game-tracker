@@ -15,6 +15,7 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showSetupLink, setShowSetupLink] = useState(false);
 
   useEffect(() => {
     if (!loading && role) {
@@ -25,6 +26,30 @@ const Login = () => {
       }
     }
   }, [role, loading, navigate]);
+
+  useEffect(() => {
+    const checkFirstRun = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("user_roles")
+          .select("id")
+          .limit(1);
+
+        if (error) {
+          console.error("Error checking roles:", error);
+          return;
+        }
+
+        setShowSetupLink(!data || data.length === 0);
+      } catch (error) {
+        console.error("Error in checkFirstRun:", error);
+      }
+    };
+
+    if (!loading && !role) {
+      checkFirstRun();
+    }
+  }, [loading, role]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,6 +149,16 @@ const Login = () => {
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Přihlašování..." : "Přihlásit"}
             </Button>
+            {showSetupLink && (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => navigate("/setup-admin")}
+              >
+                Vytvořit první účet
+              </Button>
+            )}
           </form>
         </CardContent>
       </Card>

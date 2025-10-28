@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { LogOut, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
 
@@ -39,10 +39,18 @@ export const AppHeader = () => {
             </p>
           )}
         </div>
-        <Button variant="outline" onClick={handleLogout}>
-          <LogOut className="mr-2 h-4 w-4" />
-          Odhlásit se
-        </Button>
+        <div className="flex items-center gap-2">
+          {role === "admin" && (
+            <Button variant="outline" onClick={() => navigate("/admin/users")}>
+              <Users className="mr-2 h-4 w-4" />
+              Uživatelé
+            </Button>
+          )}
+          <Button variant="outline" onClick={handleLogout}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Odhlásit se
+          </Button>
+        </div>
       </div>
     </header>
   );
