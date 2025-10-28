@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useUserRole } from "@/hooks/useUserRole";
+import { AppHeader } from "@/components/AppHeader";
 import { useToast } from "@/hooks/use-toast";
 
 interface SessionWithRoom {
@@ -17,23 +17,10 @@ interface SessionWithRoom {
 const Tablet = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { role, loading: roleLoading } = useUserRole();
   const [sessions, setSessions] = useState<SessionWithRoom[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (roleLoading) return;
-    
-    if (role !== "editor" && role !== "admin") {
-      toast({
-        title: "Přístup odepřen",
-        description: "Nemáte oprávnění pro tablet režim",
-        variant: "destructive",
-      });
-      navigate("/");
-      return;
-    }
-
     const fetchTodaySessions = async () => {
       try {
         const today = new Date();
@@ -74,9 +61,9 @@ const Tablet = () => {
     };
 
     fetchTodaySessions();
-  }, [role, roleLoading, navigate, toast]);
+  }, [navigate, toast]);
 
-  if (roleLoading || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-muted-foreground">Načítání...</div>
@@ -86,6 +73,7 @@ const Tablet = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <AppHeader />
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <Card>
           <CardHeader>

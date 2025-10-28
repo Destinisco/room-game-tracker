@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { useUserRole } from "@/hooks/useUserRole";
+import { AppHeader } from "@/components/AppHeader";
 import { useToast } from "@/hooks/use-toast";
 
 interface Player {
@@ -28,25 +28,12 @@ const TabletSession = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { role, loading: roleLoading } = useUserRole();
   const [players, setPlayers] = useState<Player[]>([]);
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (roleLoading) return;
-
-    if (role !== "editor" && role !== "admin") {
-      toast({
-        title: "Přístup odepřen",
-        description: "Nemáte oprávnění pro tablet režim",
-        variant: "destructive",
-      });
-      navigate("/tablet");
-      return;
-    }
-
     const fetchData = async () => {
       try {
         const { data: sessionData, error: sessionError } = await supabase
@@ -87,7 +74,7 @@ const TabletSession = () => {
     };
 
     fetchData();
-  }, [id, role, roleLoading, navigate, toast]);
+  }, [id, navigate, toast]);
 
   const getPlayerStatus = (player: Player) => {
     if (!player.first_name && !player.last_name) return "empty";
@@ -113,7 +100,7 @@ const TabletSession = () => {
     }
   };
 
-  if (roleLoading || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-muted-foreground">Načítání...</div>
@@ -148,6 +135,7 @@ const TabletSession = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <AppHeader />
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         <Link to="/tablet">
           <Button variant="ghost" size="lg" className="mb-6">

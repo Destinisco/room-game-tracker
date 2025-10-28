@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { AppHeader } from "@/components/AppHeader";
 import { AddPlayerDialog } from "@/components/AddPlayerDialog";
 import { PlayerCard } from "@/components/PlayerCard";
 import { PlayerObservation } from "@/components/PlayerObservation";
@@ -352,6 +353,7 @@ const SessionDetail = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <AppHeader />
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         <Link to={`/rooms/${room.id}`}>
           <Button variant="ghost" size="sm" className="mb-6">
