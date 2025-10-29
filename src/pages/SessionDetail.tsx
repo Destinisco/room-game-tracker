@@ -476,6 +476,7 @@ const SessionDetail = () => {
                     sessionId={session.id}
                     bandColors={room.band_colors || []}
                     onPlayerAdded={fetchPlayers}
+                    currentPlayerCount={players.length}
                   />
                 )}
               </div>
