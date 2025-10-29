@@ -71,36 +71,53 @@ const SetupAdmin = () => {
     setIsLoading(true);
 
     try {
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+      // First, check if user already exists and try to sign in
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-        },
       });
 
-      if (signUpError) {
-        toast({
-          title: "Chyba registrace",
-          description: signUpError.message,
-          variant: "destructive",
+      let userId: string;
+
+      if (signInData?.user) {
+        // User exists and password is correct - use existing user
+        userId = signInData.user.id;
+      } else {
+        // Try to create new user
+        const { data: authData, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/`,
+          },
         });
-        return;
+
+        if (signUpError) {
+          toast({
+            title: "Chyba registrace",
+            description: signUpError.message,
+            variant: "destructive",
+          });
+          return;
+        }
+
+        if (!authData.user) {
+          toast({
+            title: "Chyba",
+            description: "Nepodařilo se vytvořit uživatele",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        userId = authData.user.id;
       }
 
-      if (!authData.user) {
-        toast({
-          title: "Chyba",
-          description: "Nepodařilo se vytvořit uživatele",
-          variant: "destructive",
-        });
-        return;
-      }
-
+      // Now insert the admin role
       const { error: roleError } = await supabase
         .from("user_roles")
         .insert({
-          user_id: authData.user.id,
+          user_id: userId,
           role: "admin",
         });
 
@@ -108,7 +125,7 @@ const SetupAdmin = () => {
         console.error("Error creating role:", roleError);
         toast({
           title: "Chyba",
-          description: "Nepodařilo se přiřadit roli",
+          description: "Nepodařilo se přiřadit roli: " + roleError.message,
           variant: "destructive",
         });
         await supabase.auth.signOut();
