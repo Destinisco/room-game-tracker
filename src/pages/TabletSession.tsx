@@ -111,11 +111,16 @@ const TabletSession = () => {
   if (selectedPlayerId) {
     const player = players.find(p => p.id === selectedPlayerId);
     if (player) {
+      const usedColors = players
+        .filter(p => p.id !== player.id && p.band_color)
+        .map(p => p.band_color as string);
+      
       return (
         <PlayerIntakeForm
           player={player}
           sessionId={id!}
           bandColors={room?.band_colors || []}
+          usedColors={usedColors}
           onBack={() => {
             setSelectedPlayerId(null);
             // Refresh players
@@ -197,11 +202,13 @@ const PlayerIntakeForm = ({
   sessionId,
   bandColors,
   onBack,
+  usedColors,
 }: {
   player: Player;
   sessionId: string;
   bandColors: string[];
   onBack: () => void;
+  usedColors: string[];
 }) => {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
@@ -378,11 +385,14 @@ const PlayerIntakeForm = ({
                 className="w-full p-4 text-lg border rounded-md"
               >
                 <option value="">Vyberte barvu</option>
-                {bandColors.map((color) => (
-                  <option key={color} value={color}>
-                    {color}
-                  </option>
-                ))}
+                {bandColors.map((color) => {
+                  const isUsed = usedColors.includes(color) && player.band_color !== color;
+                  return (
+                    <option key={color} value={color} disabled={isUsed}>
+                      {color} {isUsed ? "(používá jiný hráč)" : ""}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 

@@ -66,12 +66,9 @@ export const AddPlayerDialog = ({
 
   const onSubmit = async (data: PlayerFormData) => {
     try {
-      // Generate default name if not provided
-      const fullName = data.fullName.trim() || `Hráč ${currentPlayerCount + 1}`;
-      
       const { error: playerError } = await supabase.from("players").insert({
         session_id: sessionId,
-        full_name: fullName,
+        full_name: data.fullName.trim(),
         email: data.email || null,
         phone: data.phone || null,
         band_color: data.bandColor || null,
@@ -116,19 +113,14 @@ export const AddPlayerDialog = ({
             <FormField
               control={form.control}
               name="fullName"
+              rules={{ required: "Jméno a příjmení je povinné" }}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Jméno a příjmení</FormLabel>
+                  <FormLabel>Jméno a příjmení *</FormLabel>
                   <FormControl>
-                    <Input 
-                      {...field} 
-                      placeholder={`Hráč ${currentPlayerCount + 1}`}
-                    />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
-                  <p className="text-xs text-muted-foreground">
-                    Pokud nevyplníte, vygeneruje se automaticky
-                  </p>
                 </FormItem>
               )}
             />
