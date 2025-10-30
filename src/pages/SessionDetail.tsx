@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Play, Pause, Square } from "lucide-react";
+import { ArrowLeft, Play, Pause, Square, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +10,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { AddPlayerDialog } from "@/components/AddPlayerDialog";
 import { PlayerCard } from "@/components/PlayerCard";
 import { PlayerObservation } from "@/components/PlayerObservation";
+import { PlayerAnalysisPreview } from "@/components/PlayerAnalysisPreview";
 
 interface GameSession {
   id: string;
@@ -41,6 +42,14 @@ interface Player {
   consent: boolean;
 }
 
+interface PlayerAnalysis {
+  id: string;
+  player_id: string;
+  ai_output_json: any;
+  ai_version: number;
+  template_version: number;
+}
+
 const SessionDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -51,6 +60,13 @@ const SessionDetail = () => {
   const [loading, setLoading] = useState(true);
   const [timeDisplay, setTimeDisplay] = useState("");
   const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
+  const [analyses, setAnalyses] = useState<PlayerAnalysis[]>([]);
+  const [selectedAnalysis, setSelectedAnalysis] = useState<{
+    playerId: string;
+    analysis: any;
+    template: any;
+  } | null>(null);
+  const [currentTemplate, setCurrentTemplate] = useState<any>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -94,6 +110,30 @@ const SessionDetail = () => {
 
         if (playersError) throw playersError;
         setPlayers(playersData || []);
+
+        // Fetch player analyses
+        const { data: analysesData, error: analysesError } = await supabase
+          .from("player_analyses")
+          .select("*")
+          .eq("session_id", id);
+
+        if (!analysesError && analysesData) {
+          setAnalyses(analysesData);
+        }
+
+        // Fetch published template
+        const { data: templateData, error: templateError } = await supabase
+          .from("game_templates")
+          .select("*")
+          .eq("room_id", sessionData.room_id)
+          .eq("status", "published")
+          .order("version", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!templateError && templateData) {
+          setCurrentTemplate(templateData);
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -349,6 +389,32 @@ const SessionDetail = () => {
     if (!error && data) {
       setPlayers(data);
     }
+
+    // Also refresh analyses
+    const { data: analysesData, error: analysesError } = await supabase
+      .from("player_analyses")
+      .select("*")
+      .eq("session_id", id!);
+
+    if (!analysesError && analysesData) {
+      setAnalyses(analysesData);
+    }
+  };
+
+  const handleViewAnalysis = async (playerId: string) => {
+    const analysis = analyses.find(a => a.player_id === playerId);
+    if (!analysis) return;
+
+    setSelectedAnalysis({
+      playerId,
+      analysis: analysis.ai_output_json,
+      template: {
+        name: currentTemplate?.name || "",
+        accentColor: currentTemplate?.accent_color || "#3b82f6",
+        fontFamily: currentTemplate?.font_family || "Inter",
+        layoutDefinition: currentTemplate?.layout_definition || [],
+      },
+    });
   };
 
   return (
@@ -471,14 +537,22 @@ const SessionDetail = () => {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Hráči</CardTitle>
-                {session.status !== "finished" && (
-                  <AddPlayerDialog
-                    sessionId={session.id}
-                    bandColors={room.band_colors || []}
-                    onPlayerAdded={fetchPlayers}
-                    currentPlayerCount={players.length}
-                  />
-                )}
+                <div className="flex gap-2">
+                  {analyses.length > 0 && (
+                    <Button variant="outline" size="sm">
+                      <Download className="w-4 h-4 mr-2" />
+                      Stáhnout všechny PDF
+                    </Button>
+                  )}
+                  {session.status !== "finished" && (
+                    <AddPlayerDialog
+                      sessionId={session.id}
+                      bandColors={room.band_colors || []}
+                      onPlayerAdded={fetchPlayers}
+                      currentPlayerCount={players.length}
+                    />
+                  )}
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -502,14 +576,24 @@ const SessionDetail = () => {
                         roomId={room.id}
                       />
                     ) : (
-                      players.map((player) => (
-                        <PlayerCard
-                          key={player.id}
-                          player={player}
-                          isExpanded={false}
-                          onClick={() => setExpandedPlayerId(player.id)}
-                        />
-                      ))
+                      players.map((player) => {
+                        const hasAnalysis = analyses.some(a => a.player_id === player.id);
+                        return (
+                          <PlayerCard
+                            key={player.id}
+                            player={player}
+                            onClick={() => {
+                              if (hasAnalysis) {
+                                handleViewAnalysis(player.id);
+                              } else {
+                                setExpandedPlayerId(player.id);
+                              }
+                            }}
+                            onAnalysisGenerated={fetchPlayers}
+                            hasAnalysis={hasAnalysis}
+                          />
+                        );
+                      })
                     )}
                   </div>
                   {expandedPlayerId && (
@@ -525,6 +609,43 @@ const SessionDetail = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* Analysis preview */}
+          {selectedAnalysis && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Náhled profilu hráče</CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedAnalysis(null)}
+                  >
+                    Zavřít
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <PlayerAnalysisPreview
+                  playerId={selectedAnalysis.playerId}
+                  analysis={selectedAnalysis.analysis}
+                  template={selectedAnalysis.template}
+                  onPrint={() => {
+                    toast({
+                      title: "Tisk zahájen",
+                      description: "Dokument se připravuje k tisku",
+                    });
+                  }}
+                  onDownload={() => {
+                    toast({
+                      title: "Stahování",
+                      description: "PDF se připravuje ke stažení",
+                    });
+                  }}
+                />
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>
