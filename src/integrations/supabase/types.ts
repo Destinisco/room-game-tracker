@@ -72,6 +72,62 @@ export type Database = {
           },
         ]
       }
+      game_ai_briefs: {
+        Row: {
+          created_at: string
+          id: string
+          max_tokens: number | null
+          model: string
+          output_schema: Json
+          published_at: string | null
+          room_id: string
+          status: Database["public"]["Enums"]["template_status"]
+          system_prompt: string
+          temperature: number | null
+          updated_at: string
+          user_prompt_template: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          max_tokens?: number | null
+          model?: string
+          output_schema?: Json
+          published_at?: string | null
+          room_id: string
+          status?: Database["public"]["Enums"]["template_status"]
+          system_prompt: string
+          temperature?: number | null
+          updated_at?: string
+          user_prompt_template: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          max_tokens?: number | null
+          model?: string
+          output_schema?: Json
+          published_at?: string | null
+          room_id?: string
+          status?: Database["public"]["Enums"]["template_status"]
+          system_prompt?: string
+          temperature?: number | null
+          updated_at?: string
+          user_prompt_template?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_ai_briefs_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       game_sessions: {
         Row: {
           code: string
@@ -118,6 +174,116 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_templates: {
+        Row: {
+          accent_color: string
+          background_url: string | null
+          created_at: string
+          font_family: string
+          id: string
+          layout_definition: Json
+          logo_url: string | null
+          name: string
+          placeholders_schema: Json
+          published_at: string | null
+          room_id: string
+          status: Database["public"]["Enums"]["template_status"]
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          accent_color?: string
+          background_url?: string | null
+          created_at?: string
+          font_family?: string
+          id?: string
+          layout_definition?: Json
+          logo_url?: string | null
+          name: string
+          placeholders_schema?: Json
+          published_at?: string | null
+          room_id: string
+          status?: Database["public"]["Enums"]["template_status"]
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          accent_color?: string
+          background_url?: string | null
+          created_at?: string
+          font_family?: string
+          id?: string
+          layout_definition?: Json
+          logo_url?: string | null
+          name?: string
+          placeholders_schema?: Json
+          published_at?: string | null
+          room_id?: string
+          status?: Database["public"]["Enums"]["template_status"]
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_templates_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      player_analyses: {
+        Row: {
+          ai_output_json: Json | null
+          ai_version: number
+          created_at: string
+          id: string
+          pdf_url: string | null
+          player_id: string
+          session_id: string
+          template_version: number
+          updated_at: string
+        }
+        Insert: {
+          ai_output_json?: Json | null
+          ai_version: number
+          created_at?: string
+          id?: string
+          pdf_url?: string | null
+          player_id: string
+          session_id: string
+          template_version: number
+          updated_at?: string
+        }
+        Update: {
+          ai_output_json?: Json | null
+          ai_version?: number
+          created_at?: string
+          id?: string
+          pdf_url?: string | null
+          player_id?: string
+          session_id?: string
+          template_version?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_analyses_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: true
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_analyses_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "game_sessions"
             referencedColumns: ["id"]
           },
         ]
@@ -324,6 +490,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "editor"
+      template_status: "draft" | "published"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -452,6 +619,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "editor"],
+      template_status: ["draft", "published"],
     },
   },
 } as const
