@@ -15,6 +15,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useUserRole } from "@/hooks/useUserRole";
+import { Sparkles, Loader2 } from "lucide-react";
+import { PlayerAnalysisPreview } from "./PlayerAnalysisPreview";
 
 interface Role {
   id: string;
@@ -60,8 +63,10 @@ interface PlayerObservationProps {
 
 export const PlayerObservation = ({ playerId, roomId }: PlayerObservationProps) => {
   const { toast } = useToast();
+  const { isAdmin } = useUserRole();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [player, setPlayer] = useState<Player | null>(null);
   const [roles, setRoles] = useState<Role[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -71,6 +76,8 @@ export const PlayerObservation = ({ playerId, roomId }: PlayerObservationProps) 
   const [language, setLanguage] = useState<string>("cs");
   const [notes, setNotes] = useState<string>("");
   const [consentBlocked, setConsentBlocked] = useState(false);
+  const [analysis, setAnalysis] = useState<any>(null);
+  const [template, setTemplate] = useState<any>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -83,7 +90,8 @@ export const PlayerObservation = ({ playerId, roomId }: PlayerObservationProps) 
 
         if (playerError) throw playerError;
         setPlayer(playerData);
-        setConsentBlocked(!playerData.consent);
+        // Admins can always edit, regardless of consent
+        setConsentBlocked(!isAdmin && !playerData.consent);
 
         const { data: rolesData, error: rolesError } = await supabase
           .from("role_templates")
@@ -134,6 +142,33 @@ export const PlayerObservation = ({ playerId, roomId }: PlayerObservationProps) 
           setLanguage(observationData.language || "cs");
           setNotes(observationData.notes || "");
         }
+
+        // Load existing analysis
+        const { data: analysisData } = await supabase
+          .from("player_analyses")
+          .select("*")
+          .eq("player_id", playerId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (analysisData) {
+          setAnalysis(analysisData);
+        }
+
+        // Load published template
+        const { data: templateData } = await supabase
+          .from("game_templates")
+          .select("*")
+          .eq("room_id", roomId)
+          .eq("status", "published")
+          .order("version", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (templateData) {
+          setTemplate(templateData);
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
         toast({
@@ -147,7 +182,7 @@ export const PlayerObservation = ({ playerId, roomId }: PlayerObservationProps) 
     };
 
     fetchData();
-  }, [playerId, roomId, toast]);
+  }, [playerId, roomId, toast, isAdmin]);
 
   const handleCheckChange = (itemId: string, value: string) => {
     setChecks((prev) => ({
@@ -217,6 +252,57 @@ export const PlayerObservation = ({ playerId, roomId }: PlayerObservationProps) 
     }
   };
 
+  const handleGenerateAnalysis = async () => {
+    if (!player?.consent && !isAdmin) {
+      toast({
+        title: "Souhlas chybí",
+        description: "Hráč neudělil souhlas, nelze generovat analýzu",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-analysis", {
+        body: { playerId },
+      });
+
+      if (error) throw error;
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      toast({
+        title: "Analýza vygenerována",
+        description: "Profil hráče byl úspěšně vygenerován",
+      });
+      
+      // Reload analysis
+      const { data: analysisData } = await supabase
+        .from("player_analyses")
+        .select("*")
+        .eq("player_id", playerId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (analysisData) {
+        setAnalysis(analysisData);
+      }
+    } catch (error) {
+      console.error("Error generating analysis:", error);
+      toast({
+        title: "Chyba",
+        description: error instanceof Error ? error.message : "Nepodařilo se vygenerovat analýzu",
+        variant: "destructive",
+      });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   if (loading) {
     return <div className="text-center py-8">Načítání...</div>;
   }
@@ -257,10 +343,18 @@ export const PlayerObservation = ({ playerId, roomId }: PlayerObservationProps) 
             </div>
           )}
 
-          {consentBlocked && (
+          {!player?.consent && !isAdmin && (
             <div className="p-4 bg-destructive/10 border border-destructive rounded-lg">
               <p className="text-sm text-destructive font-medium">
                 ⚠️ Pozorování a analýza jsou zablokované, protože hráč neposkytl souhlas se zpracováním herního profilu.
+              </p>
+            </div>
+          )}
+
+          {isAdmin && !player?.consent && (
+            <div className="p-4 bg-warning/10 border border-warning rounded-lg">
+              <p className="text-sm text-warning font-medium">
+                ℹ️ Hráč neudělil souhlas, ale jako admin můžete upravovat profil a generovat analýzu.
               </p>
             </div>
           )}
@@ -369,9 +463,28 @@ export const PlayerObservation = ({ playerId, roomId }: PlayerObservationProps) 
                   />
                 </div>
 
-                <Button onClick={handleSave} disabled={saving || consentBlocked} className="w-full mt-4">
-                  {saving ? "Ukládání..." : "Uložit pozorování"}
-                </Button>
+                <div className="flex gap-2 mt-4">
+                  <Button onClick={handleSave} disabled={saving || consentBlocked} className="flex-1">
+                    {saving ? "Ukládání..." : "Uložit pozorování"}
+                  </Button>
+                  <Button 
+                    onClick={handleGenerateAnalysis}
+                    disabled={generating || consentBlocked}
+                    variant={analysis ? "secondary" : "default"}
+                  >
+                    {generating ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Generuji...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        {analysis ? "Regenerovat" : "Generovat"}
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </TooltipTrigger>
             {consentBlocked && (
@@ -380,6 +493,22 @@ export const PlayerObservation = ({ playerId, roomId }: PlayerObservationProps) 
               </TooltipContent>
             )}
           </Tooltip>
+
+          {isAdmin && analysis && player && template && (
+            <div className="mt-6 pt-6 border-t">
+              <h3 className="text-lg font-semibold mb-4">Analýza hráče</h3>
+              <PlayerAnalysisPreview 
+                playerId={player.id}
+                analysis={analysis.ai_output_json}
+                template={{
+                  name: template.name,
+                  accentColor: template.accent_color,
+                  fontFamily: template.font_family,
+                  layoutDefinition: template.layout_definition,
+                }}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
     </TooltipProvider>
