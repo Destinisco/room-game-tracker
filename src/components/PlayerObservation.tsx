@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
@@ -16,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useUserRole } from "@/hooks/useUserRole";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Sparkles, Loader2, Edit2 } from "lucide-react";
 import { PlayerAnalysisPreview } from "./PlayerAnalysisPreview";
 
 interface Role {
@@ -78,6 +80,16 @@ export const PlayerObservation = ({ playerId, roomId }: PlayerObservationProps) 
   const [consentBlocked, setConsentBlocked] = useState(false);
   const [analysis, setAnalysis] = useState<any>(null);
   const [template, setTemplate] = useState<any>(null);
+  const [editingPlayer, setEditingPlayer] = useState(false);
+  const [playerEdits, setPlayerEdits] = useState({
+    first_name: "",
+    last_name: "",
+    email: "",
+    phone: "",
+    band_color: "",
+    gender: "",
+    consent: false,
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -90,6 +102,15 @@ export const PlayerObservation = ({ playerId, roomId }: PlayerObservationProps) 
 
         if (playerError) throw playerError;
         setPlayer(playerData);
+        setPlayerEdits({
+          first_name: playerData.first_name || "",
+          last_name: playerData.last_name || "",
+          email: playerData.email || "",
+          phone: playerData.phone || "",
+          band_color: playerData.band_color || "",
+          gender: playerData.gender || "",
+          consent: playerData.consent || false,
+        });
         // Admins can always edit, regardless of consent
         setConsentBlocked(!isAdmin && !playerData.consent);
 
@@ -209,6 +230,38 @@ export const PlayerObservation = ({ playerId, roomId }: PlayerObservationProps) 
     return selected;
   };
 
+  const handleSavePlayer = async () => {
+    if (!isAdmin) return;
+    
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("players")
+        .update(playerEdits)
+        .eq("id", playerId);
+
+      if (error) throw error;
+
+      setPlayer({ ...player!, ...playerEdits });
+      setEditingPlayer(false);
+      setConsentBlocked(!isAdmin && !playerEdits.consent);
+
+      toast({
+        title: "Uloženo",
+        description: "Údaje hráče byly úspěšně uloženy",
+      });
+    } catch (error) {
+      console.error("Error saving player:", error);
+      toast({
+        title: "Chyba",
+        description: "Nepodařilo se uložit údaje hráče",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -318,28 +371,144 @@ export const PlayerObservation = ({ playerId, roomId }: PlayerObservationProps) 
         <CardContent className="space-y-6">
           {player && (
             <div className="space-y-3 p-4 bg-muted rounded-lg">
-              <div className="flex items-center gap-2">
-                {player.band_color && (
-                  <Badge variant="outline" className="text-base">
-                    {player.band_color}
-                  </Badge>
-                )}
-                <h3 className="text-xl font-semibold">
-                  {player.first_name} {player.last_name}
-                </h3>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-                {player.email && <div>Email: {player.email}</div>}
-                {player.phone && <div>Telefon: {player.phone}</div>}
-                {player.gender && <div>Pohlaví: {player.gender}</div>}
-                <div>
-                  Souhlas: {player.consent ? (
-                    <Badge variant="default" className="ml-1">Ano</Badge>
-                  ) : (
-                    <Badge variant="destructive" className="ml-1">Ne</Badge>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {!editingPlayer && player.band_color && (
+                    <Badge variant="outline" className="text-base">
+                      {player.band_color}
+                    </Badge>
+                  )}
+                  {!editingPlayer && (
+                    <h3 className="text-xl font-semibold">
+                      {player.first_name} {player.last_name}
+                    </h3>
+                  )}
+                  {editingPlayer && (
+                    <h3 className="text-xl font-semibold">Editace údajů hráče</h3>
                   )}
                 </div>
+                {isAdmin && !editingPlayer && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setEditingPlayer(true)}
+                  >
+                    <Edit2 className="w-4 h-4 mr-2" />
+                    Upravit
+                  </Button>
+                )}
               </div>
+
+              {!editingPlayer ? (
+                <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+                  {player.email && <div>Email: {player.email}</div>}
+                  {player.phone && <div>Telefon: {player.phone}</div>}
+                  {player.gender && <div>Pohlaví: {player.gender}</div>}
+                  <div>
+                    Souhlas: {player.consent ? (
+                      <Badge variant="default" className="ml-1">Ano</Badge>
+                    ) : (
+                      <Badge variant="destructive" className="ml-1">Ne</Badge>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Jméno</Label>
+                      <Input
+                        value={playerEdits.first_name}
+                        onChange={(e) => setPlayerEdits({ ...playerEdits, first_name: e.target.value })}
+                        placeholder="Jméno"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Příjmení</Label>
+                      <Input
+                        value={playerEdits.last_name}
+                        onChange={(e) => setPlayerEdits({ ...playerEdits, last_name: e.target.value })}
+                        placeholder="Příjmení"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Email</Label>
+                      <Input
+                        type="email"
+                        value={playerEdits.email}
+                        onChange={(e) => setPlayerEdits({ ...playerEdits, email: e.target.value })}
+                        placeholder="email@example.com"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Telefon</Label>
+                      <Input
+                        value={playerEdits.phone}
+                        onChange={(e) => setPlayerEdits({ ...playerEdits, phone: e.target.value })}
+                        placeholder="+420..."
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Barva pásku</Label>
+                      <Input
+                        value={playerEdits.band_color}
+                        onChange={(e) => setPlayerEdits({ ...playerEdits, band_color: e.target.value })}
+                        placeholder="Modrá"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Pohlaví</Label>
+                      <Select
+                        value={playerEdits.gender}
+                        onValueChange={(value) => setPlayerEdits({ ...playerEdits, gender: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Vyberte pohlaví" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Muž">Muž</SelectItem>
+                          <SelectItem value="Žena">Žena</SelectItem>
+                          <SelectItem value="Jiné">Jiné</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      checked={playerEdits.consent}
+                      onCheckedChange={(checked) => setPlayerEdits({ ...playerEdits, consent: checked })}
+                      id="consent"
+                    />
+                    <Label htmlFor="consent">Souhlas se zpracováním herního profilu</Label>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={handleSavePlayer} disabled={saving}>
+                      {saving ? "Ukládání..." : "Uložit"}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setEditingPlayer(false);
+                        setPlayerEdits({
+                          first_name: player.first_name || "",
+                          last_name: player.last_name || "",
+                          email: player.email || "",
+                          phone: player.phone || "",
+                          band_color: player.band_color || "",
+                          gender: player.gender || "",
+                          consent: player.consent || false,
+                        });
+                      }}
+                    >
+                      Zrušit
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

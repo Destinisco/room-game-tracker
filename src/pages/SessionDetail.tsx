@@ -582,13 +582,7 @@ const SessionDetail = () => {
                           <PlayerCard
                             key={player.id}
                             player={player}
-                            onClick={() => {
-                              if (hasAnalysis) {
-                                handleViewAnalysis(player.id);
-                              } else {
-                                setExpandedPlayerId(player.id);
-                              }
-                            }}
+                            onClick={() => setExpandedPlayerId(player.id)}
                             onAnalysisGenerated={fetchPlayers}
                             hasAnalysis={hasAnalysis}
                           />
