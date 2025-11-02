@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      analysis_templates: {
+        Row: {
+          background_url: string | null
+          created_at: string
+          id: string
+          name: string
+          room_id: string
+          slots_json: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          background_url?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          room_id: string
+          slots_json: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          background_url?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          room_id?: string
+          slots_json?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analysis_templates_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       behavior_categories: {
         Row: {
           created_at: string | null
@@ -49,18 +90,21 @@ export type Database = {
           created_at: string | null
           id: string
           label: string
+          psychological_meaning: string | null
         }
         Insert: {
           category_id: string
           created_at?: string | null
           id?: string
           label: string
+          psychological_meaning?: string | null
         }
         Update: {
           category_id?: string
           created_at?: string | null
           id?: string
           label?: string
+          psychological_meaning?: string | null
         }
         Relationships: [
           {
@@ -420,7 +464,9 @@ export type Database = {
       }
       rooms: {
         Row: {
+          ai_brief: string | null
           band_colors: string[] | null
+          behavior_lexicon: Json | null
           branch: string | null
           created_at: string | null
           description: string | null
@@ -431,7 +477,9 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          ai_brief?: string | null
           band_colors?: string[] | null
+          behavior_lexicon?: Json | null
           branch?: string | null
           created_at?: string | null
           description?: string | null
@@ -442,7 +490,9 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          ai_brief?: string | null
           band_colors?: string[] | null
+          behavior_lexicon?: Json | null
           branch?: string | null
           created_at?: string | null
           description?: string | null

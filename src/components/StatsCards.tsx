@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { startOfDay, startOfWeek, startOfMonth, endOfDay } from "date-fns";
+import { startOfDay, startOfWeek, startOfMonth, startOfYear } from "date-fns";
 
 export const StatsCards = () => {
   const [stats, setStats] = useState({
     today: 0,
     thisWeek: 0,
     thisMonth: 0,
-    avgPlayersMonth: 0,
+    thisYear: 0,
   });
 
   useEffect(() => {
@@ -17,6 +17,7 @@ export const StatsCards = () => {
       const todayStart = startOfDay(now);
       const weekStart = startOfWeek(now, { weekStartsOn: 1 });
       const monthStart = startOfMonth(now);
+      const yearStart = startOfYear(now);
 
       const { data: allSessions } = await supabase
         .from("game_sessions")
@@ -35,20 +36,15 @@ export const StatsCards = () => {
           (s) => new Date(s.created_at) >= weekStart
         ).length;
 
-        const monthSessions = allSessions.filter(
+        const thisMonth = allSessions.filter(
           (s) => new Date(s.created_at) >= monthStart
-        );
-        const thisMonth = monthSessions.length;
+        ).length;
 
-        // Average players per game this month
-        let avgPlayersMonth = 0;
-        if (allPlayers && monthSessions.length > 0) {
-          const monthSessionIds = monthSessions.map(s => s.id);
-          const monthPlayers = allPlayers.filter(p => monthSessionIds.includes(p.session_id));
-          avgPlayersMonth = monthPlayers.length / monthSessions.length;
-        }
+        const thisYear = allSessions.filter(
+          (s) => new Date(s.created_at) >= yearStart
+        ).length;
 
-        setStats({ today, thisWeek, thisMonth, avgPlayersMonth });
+        setStats({ today, thisWeek, thisMonth, thisYear });
       }
     };
 
@@ -72,7 +68,7 @@ export const StatsCards = () => {
     { title: "Dnes", value: stats.today, suffix: "založených her" },
     { title: "Tento týden", value: stats.thisWeek, suffix: "založených her" },
     { title: "Tento měsíc", value: stats.thisMonth, suffix: "založených her" },
-    { title: "Průměr hráčů na hru", value: stats.avgPlayersMonth.toFixed(1), suffix: "tento měsíc" },
+    { title: "Tento rok", value: stats.thisYear, suffix: "založených her" },
   ];
 
   return (

@@ -3,6 +3,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -11,6 +12,7 @@ interface BehaviorItem {
   id: string;
   category_id: string;
   label: string;
+  psychological_meaning: string | null;
 }
 
 interface BehaviorCategory {
@@ -195,13 +197,13 @@ export const BehaviorCategoriesTab = ({ roomId }: BehaviorCategoriesTabProps) =>
     }
   };
 
-  const handleUpdateBehaviorItem = async (id: string, label: string) => {
+  const handleUpdateBehaviorItem = async (id: string, field: 'label' | 'psychological_meaning', value: string) => {
     // Optimistic update
     setCategories((prev) =>
       prev.map((cat) => ({
         ...cat,
         items: cat.items.map((item) =>
-          item.id === id ? { ...item, label } : item
+          item.id === id ? { ...item, [field]: value } : item
         ),
       }))
     );
@@ -209,7 +211,7 @@ export const BehaviorCategoriesTab = ({ roomId }: BehaviorCategoriesTabProps) =>
     try {
       const { error } = await supabase
         .from("behavior_items")
-        .update({ label })
+        .update({ [field]: value })
         .eq("id", id);
 
       if (error) throw error;
@@ -335,24 +337,39 @@ export const BehaviorCategoriesTab = ({ roomId }: BehaviorCategoriesTabProps) =>
                       {category.items.map((item) => (
                         <div
                           key={item.id}
-                          className="flex items-center gap-2 bg-muted/30 p-2 rounded"
+                          className="bg-muted/30 p-3 rounded space-y-2"
                         >
-                          <Input
-                            value={item.label}
-                            onChange={(e) =>
-                              handleUpdateBehaviorItem(item.id, e.target.value)
-                            }
-                            placeholder="např. Komunikuje jasně a srozumitelně..."
-                            className="flex-1 bg-background"
-                          />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={() => handleDeleteBehaviorItem(item.id)}
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              value={item.label}
+                              onChange={(e) =>
+                                handleUpdateBehaviorItem(item.id, 'label', e.target.value)
+                              }
+                              placeholder="např. Komunikuje jasně a srozumitelně..."
+                              className="flex-1 bg-background"
+                            />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              onClick={() => handleDeleteBehaviorItem(item.id)}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground">
+                              Psychologický význam (pro AI)
+                            </Label>
+                            <Textarea
+                              value={item.psychological_meaning || ""}
+                              onChange={(e) =>
+                                handleUpdateBehaviorItem(item.id, 'psychological_meaning', e.target.value)
+                              }
+                              placeholder="Popište psychologický význam tohoto chování..."
+                              className="bg-background text-sm min-h-[60px]"
+                            />
+                          </div>
                         </div>
                       ))}
                     </div>

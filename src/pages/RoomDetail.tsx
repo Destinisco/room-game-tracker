@@ -22,6 +22,7 @@ import { CreateGameDialog } from "@/components/CreateGameDialog";
 import { GameSessionsList } from "@/components/GameSessionsList";
 import { RolesTab } from "@/components/RolesTab";
 import { BehaviorCategoriesTab } from "@/components/BehaviorCategoriesTab";
+import { AnalysisTemplateTab } from "@/components/AnalysisTemplateTab";
 import { DeleteRoomDialog } from "@/components/DeleteRoomDialog";
 
 interface Room {
@@ -32,6 +33,8 @@ interface Room {
   time_limit_minutes: number;
   band_colors: string[];
   edit_code?: string | null;
+  ai_brief?: string | null;
+  behavior_lexicon?: any;
 }
 
 const RoomDetail = () => {
@@ -53,6 +56,8 @@ const RoomDetail = () => {
     branch: "",
     description: "",
     timeLimit: "",
+    aiBrief: "",
+    behaviorLexicon: "{}",
   });
 
   useEffect(() => {
@@ -84,6 +89,8 @@ const RoomDetail = () => {
           branch: data.branch || "",
           description: data.description || "",
           timeLimit: data.time_limit_minutes.toString(),
+          aiBrief: data.ai_brief || "",
+          behaviorLexicon: JSON.stringify(data.behavior_lexicon || {}, null, 2),
         });
       } catch (error) {
         console.error("Error fetching room:", error);
@@ -108,6 +115,20 @@ const RoomDetail = () => {
     setSaving(true);
 
     try {
+      // Validate JSON
+      let behaviorLexicon = {};
+      try {
+        behaviorLexicon = JSON.parse(formData.behaviorLexicon);
+      } catch (e) {
+        toast({
+          title: "Chyba",
+          description: "Behavior lexikon není validní JSON",
+          variant: "destructive",
+        });
+        setSaving(false);
+        return;
+      }
+
       const { error } = await supabase
         .from("rooms")
         .update({
@@ -115,6 +136,8 @@ const RoomDetail = () => {
           branch: formData.branch || null,
           description: formData.description || null,
           time_limit_minutes: parseInt(formData.timeLimit),
+          ai_brief: formData.aiBrief || null,
+          behavior_lexicon: behaviorLexicon,
         })
         .eq("id", room.id);
 
@@ -131,6 +154,8 @@ const RoomDetail = () => {
         branch: formData.branch || null,
         description: formData.description || null,
         time_limit_minutes: parseInt(formData.timeLimit),
+        ai_brief: formData.aiBrief || null,
+        behavior_lexicon: JSON.parse(formData.behaviorLexicon),
       };
       setRoom(updatedRoom);
     } catch (error) {
@@ -256,10 +281,11 @@ const RoomDetail = () => {
 
         <Tabs defaultValue="basic" className="w-full">
           {isEditMode && (
-            <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsList className="grid w-full grid-cols-4 mb-6">
               <TabsTrigger value="basic">Základní info</TabsTrigger>
               <TabsTrigger value="roles">Role</TabsTrigger>
               <TabsTrigger value="categories">Kategorie chování</TabsTrigger>
+              <TabsTrigger value="template">Šablona PDF</TabsTrigger>
             </TabsList>
           )}
 
@@ -359,6 +385,39 @@ const RoomDetail = () => {
                 </div>
 
                 <div>
+                  <Label htmlFor="aiBrief">AI Brief</Label>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Popište styl, tón a účel analýzy pro tuto hru
+                  </p>
+                  <Textarea
+                    id="aiBrief"
+                    value={formData.aiBrief}
+                    onChange={(e) =>
+                      setFormData({ ...formData, aiBrief: e.target.value })
+                    }
+                    placeholder="např. Analýza by měla být pozitivní, motivující a zaměřená na rozvoj týmové spolupráce..."
+                    rows={4}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="behaviorLexicon">Behavior Lexikon (JSON)</Label>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Slovník psychologických významů chování (automaticky aktualizován při úpravě chování)
+                  </p>
+                  <Textarea
+                    id="behaviorLexicon"
+                    value={formData.behaviorLexicon}
+                    onChange={(e) =>
+                      setFormData({ ...formData, behaviorLexicon: e.target.value })
+                    }
+                    placeholder='{"Kategorie.Chování": "Psychologický význam..."}'
+                    rows={8}
+                    className="font-mono text-xs"
+                  />
+                </div>
+
+                <div>
                   <Label>Kód pro editaci</Label>
                   <div className="flex gap-2 mt-2">
                     <Button
@@ -399,6 +458,10 @@ const RoomDetail = () => {
 
               <TabsContent value="categories">
                 <BehaviorCategoriesTab roomId={room.id} />
+              </TabsContent>
+
+              <TabsContent value="template">
+                <AnalysisTemplateTab roomId={room.id} />
               </TabsContent>
             </>
           )}

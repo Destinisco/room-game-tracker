@@ -25,7 +25,7 @@ serve(async (req) => {
 
     console.log("Načítám data hráče:", playerId);
 
-    // Fetch player with session and room data
+    // Fetch player with session and room data (including ai_brief and behavior_lexicon)
     const { data: player, error: playerError } = await supabase
       .from("players")
       .select(`
@@ -37,7 +37,9 @@ serve(async (req) => {
           rooms!inner(
             id,
             name,
-            band_colors
+            band_colors,
+            ai_brief,
+            behavior_lexicon
           )
         )
       `)
@@ -72,13 +74,13 @@ serve(async (req) => {
 
     console.log("Pozorování načteno");
 
-    // Fetch behavior categories with items
+    // Fetch behavior categories with items (including psychological meanings)
     const { data: behaviorData, error: behaviorError } = await supabase
       .from("behavior_categories")
       .select(`
         id,
         name,
-        items:behavior_items(id, label)
+        items:behavior_items(id, label, psychological_meaning)
       `)
       .eq("room_id", player.session.rooms.id);
 
@@ -86,39 +88,40 @@ serve(async (req) => {
       console.error("Chyba při načítání kategorií chování:", behaviorError);
     }
 
-    // Fetch published AI brief for this room
-    const { data: aiBrief, error: briefError } = await supabase
-      .from("game_ai_briefs")
-      .select("*")
-      .eq("room_id", player.session.rooms.id)
-      .eq("status", "published")
-      .order("version", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (briefError || !aiBrief) {
-      console.error("Chyba při načítání AI briefu:", briefError);
-      throw new Error("AI brief nenalezen pro tuto místnost");
-    }
-
-    console.log("AI brief načten, verze:", aiBrief.version);
-
-    // Fetch published template for this room
+    // Fetch analysis template for this room
     const { data: template, error: templateError } = await supabase
-      .from("game_templates")
+      .from("analysis_templates")
       .select("*")
       .eq("room_id", player.session.rooms.id)
-      .eq("status", "published")
       .order("version", { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    if (templateError || !template) {
+    if (templateError) {
       console.error("Chyba při načítání šablony:", templateError);
-      throw new Error("Šablona nenalezena pro tuto místnost");
     }
 
-    console.log("Šablona načtena, verze:", template.version);
+    console.log("Šablona načtena:", template ? `verze ${template.version}` : "žádná");
+
+    // Build behavior context with psychological meanings
+    const behaviorContext = (behaviorData || []).map((category: any) => {
+      const checkedItems = (category.items || [])
+        .filter((item: any) => {
+          const categoryKey = category.name;
+          const itemKey = item.label;
+          const fullKey = `${categoryKey}.${itemKey}`;
+          return observation?.checks?.[fullKey] === true;
+        })
+        .map((item: any) => ({
+          label: item.label,
+          meaning: item.psychological_meaning || "Význam není definován"
+        }));
+
+      return {
+        category: category.name,
+        checkedBehaviors: checkedItems
+      };
+    }).filter((cat: any) => cat.checkedBehaviors.length > 0);
 
     // Prepare player data for AI
     const playerData = {
@@ -129,18 +132,42 @@ serve(async (req) => {
       gender: player.gender,
       code: player.session.code,
       role: observation?.primary_role?.name || null,
+      role_description: observation?.primary_role?.description || null,
       notes: observation?.notes || null,
-      checks: observation?.checks || {},
       language: observation?.language || "cs",
+      behavior_context: behaviorContext,
     };
 
-    // Prepare required keys from output schema
-    const requiredKeys = aiBrief.output_schema.required || [];
+    // Get room configuration
+    const room = player.session.rooms;
+    const aiBrief = room.ai_brief || "Vytvořte pozitivní a motivující analýzu zaměřenou na osobnostní rozvoj.";
+    const behaviorLexicon = room.behavior_lexicon || {};
 
-    // Build user prompt from template
-    let userPrompt = aiBrief.user_prompt_template
-      .replace("{{json player}}", JSON.stringify(playerData, null, 2))
-      .replace("{{json required_keys}}", JSON.stringify(requiredKeys));
+    // Build system prompt
+    const systemPrompt = `Jsi expert na psychologickou analýzu a hodnocení týmové spolupráce.
+${aiBrief}
+
+Vždy vrať validní JSON s následujícími klíči:
+- story: Krátký příběh o hráči (2-3 věty)
+- strengths: Pole 3 silných stránek
+- flaws: Pole 3 oblastí k rozvoji
+- features: Pole 3 charakteristických rysů
+- recommendations: Text s doporučeními (3-4 věty)
+
+Všechny texty v češtině. Použij informace o zaškrtnutém chování a jejich psychologických významech.`;
+
+    // Build user prompt with behavior meanings
+    const userPrompt = `Analyzuj tohoto hráče:
+
+${JSON.stringify(playerData, null, 2)}
+
+Behavior Lexikon (psychologické významy):
+${JSON.stringify(behaviorLexicon, null, 2)}
+
+Zaškrtnuté chování s významy:
+${JSON.stringify(behaviorContext, null, 2)}
+
+Vrať JSON s klíči: story, strengths (array[3]), flaws (array[3]), features (array[3]), recommendations.`;
 
     console.log("Volám Lovable AI...");
 
@@ -157,13 +184,11 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: aiBrief.model,
+        model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: aiBrief.system_prompt },
+          { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ],
-        temperature: aiBrief.temperature,
-        max_tokens: aiBrief.max_tokens,
       }),
     });
 
@@ -204,7 +229,8 @@ serve(async (req) => {
       throw new Error("AI nevrátilo platný JSON");
     }
 
-    // Validate that all required keys are present
+    // Validate required keys
+    const requiredKeys = ["story", "strengths", "flaws", "features", "recommendations"];
     const missingKeys = requiredKeys.filter((key: string) => !(key in aiOutputJson));
     if (missingKeys.length > 0) {
       console.error("Chybějící klíče:", missingKeys);
@@ -230,13 +256,15 @@ serve(async (req) => {
       .eq("player_id", playerId)
       .maybeSingle();
 
+    const templateVersion = template?.version || 1;
+
     if (existingAnalysis) {
       console.log("Aktualizuji existující analýzu");
       const { error: updateError } = await supabase
         .from("player_analyses")
         .update({
-          ai_version: aiBrief.version,
-          template_version: template.version,
+          ai_version: 1, // Static version for now
+          template_version: templateVersion,
           ai_output_json: aiOutputJson,
           updated_at: new Date().toISOString(),
         })
@@ -253,8 +281,8 @@ serve(async (req) => {
         .insert({
           session_id: player.session.id,
           player_id: playerId,
-          ai_version: aiBrief.version,
-          template_version: template.version,
+          ai_version: 1,
+          template_version: templateVersion,
           ai_output_json: aiOutputJson,
         });
 
@@ -266,16 +294,19 @@ serve(async (req) => {
 
     console.log("Analýza uložena");
 
+    // Prepare template data for response
+    const templateData = template ? {
+      name: template.name,
+      slotsJson: template.slots_json,
+      backgroundUrl: template.background_url,
+      version: template.version,
+    } : null;
+
     return new Response(
       JSON.stringify({
         success: true,
         analysis: aiOutputJson,
-        template: {
-          name: template.name,
-          accentColor: template.accent_color,
-          fontFamily: template.font_family,
-          layoutDefinition: template.layout_definition,
-        },
+        template: templateData,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
