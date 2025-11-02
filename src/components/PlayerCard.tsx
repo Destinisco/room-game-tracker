@@ -72,7 +72,11 @@ export const PlayerCard = ({ player, onClick, onAnalysisGenerated, hasAnalysis }
       <div className="cursor-pointer" onClick={onClick}>
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
-            <CardTitle className="text-lg">{player.full_name}</CardTitle>
+            <CardTitle className="text-lg">
+              {player.full_name || (
+                <span className="text-muted-foreground italic">Nevyplněný hráč</span>
+              )}
+            </CardTitle>
             <div className="flex gap-2">
               {hasAnalysis && (
                 <Badge variant="secondary" className="text-xs">

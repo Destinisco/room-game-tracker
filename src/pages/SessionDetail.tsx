@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Play, Pause, Square, Download } from "lucide-react";
+import { ArrowLeft, Play, Pause, Square, Download, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { AppHeader } from "@/components/AppHeader";
-import { AddPlayerDialog } from "@/components/AddPlayerDialog";
 import { PlayerCard } from "@/components/PlayerCard";
 import { PlayerObservation } from "@/components/PlayerObservation";
 import { PlayerAnalysisPreview } from "@/components/PlayerAnalysisPreview";
@@ -354,6 +353,40 @@ const SessionDetail = () => {
     }
   };
 
+  const handleAddEmptyPlayer = async () => {
+    if (!session) return;
+
+    try {
+      const { error } = await supabase
+        .from("players")
+        .insert({
+          session_id: session.id,
+          full_name: null,
+          email: null,
+          phone: null,
+          band_color: null,
+          gender: null,
+          consent: false,
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Hráč přidán",
+        description: "Prázdný profil hráče byl vytvořen",
+      });
+
+      fetchPlayers();
+    } catch (error) {
+      console.error("Error adding empty player:", error);
+      toast({
+        title: "Chyba",
+        description: "Nepodařilo se přidat hráče",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -545,12 +578,10 @@ const SessionDetail = () => {
                     </Button>
                   )}
                   {session.status !== "finished" && (
-                    <AddPlayerDialog
-                      sessionId={session.id}
-                      bandColors={room.band_colors || []}
-                      onPlayerAdded={fetchPlayers}
-                      currentPlayerCount={players.length}
-                    />
+                    <Button onClick={handleAddEmptyPlayer}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Přidat hráče
+                    </Button>
                   )}
                 </div>
               </div>
