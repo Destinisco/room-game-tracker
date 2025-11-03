@@ -298,7 +298,8 @@ Vrať JSON s klíči: story, strengths (array[3]), flaws (array[3]), features (a
     const templateData = template ? {
       name: template.name,
       slotsJson: template.slots_json,
-      backgroundUrl: template.background_url,
+      backgroundFrontUrl: template.background_front_url,
+      backgroundBackUrl: template.background_back_url,
       version: template.version,
     } : null;
 

@@ -16,7 +16,8 @@ export type Database = {
     Tables: {
       analysis_templates: {
         Row: {
-          background_url: string | null
+          background_back_url: string | null
+          background_front_url: string | null
           created_at: string
           id: string
           name: string
@@ -26,7 +27,8 @@ export type Database = {
           version: number
         }
         Insert: {
-          background_url?: string | null
+          background_back_url?: string | null
+          background_front_url?: string | null
           created_at?: string
           id?: string
           name: string
@@ -36,7 +38,8 @@ export type Database = {
           version?: number
         }
         Update: {
-          background_url?: string | null
+          background_back_url?: string | null
+          background_front_url?: string | null
           created_at?: string
           id?: string
           name?: string

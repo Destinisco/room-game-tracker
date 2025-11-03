@@ -14,7 +14,8 @@ interface AnalysisTemplate {
   room_id: string;
   name: string;
   slots_json: string;
-  background_url: string | null;
+  background_front_url: string | null;
+  background_back_url: string | null;
   version: number;
   created_at: string;
   updated_at: string;
@@ -53,8 +54,11 @@ export const AnalysisTemplateTab = ({ roomId }: AnalysisTemplateTabProps) => {
   const [formData, setFormData] = useState({
     name: "",
     slotsJson: DEFAULT_SLOTS_JSON,
-    backgroundUrl: "",
+    backgroundFrontUrl: "",
+    backgroundBackUrl: "",
   });
+  const [uploadingFront, setUploadingFront] = useState(false);
+  const [uploadingBack, setUploadingBack] = useState(false);
 
   useEffect(() => {
     fetchTemplate();
@@ -77,7 +81,8 @@ export const AnalysisTemplateTab = ({ roomId }: AnalysisTemplateTabProps) => {
         setFormData({
           name: data.name,
           slotsJson: data.slots_json,
-          backgroundUrl: data.background_url || "",
+          backgroundFrontUrl: data.background_front_url || "",
+          backgroundBackUrl: data.background_back_url || "",
         });
       }
     } catch (error) {
@@ -101,6 +106,47 @@ export const AnalysisTemplateTab = ({ roomId }: AnalysisTemplateTabProps) => {
   const handleSlotsJsonChange = (value: string) => {
     setFormData({ ...formData, slotsJson: value });
     validateJSON(value);
+  };
+
+  const handleFileUpload = async (file: File, side: 'front' | 'back') => {
+    const setUploading = side === 'front' ? setUploadingFront : setUploadingBack;
+    setUploading(true);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${roomId}_${side}_${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('pdf-backgrounds')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('pdf-backgrounds')
+        .getPublicUrl(filePath);
+
+      if (side === 'front') {
+        setFormData({ ...formData, backgroundFrontUrl: publicUrl });
+      } else {
+        setFormData({ ...formData, backgroundBackUrl: publicUrl });
+      }
+
+      toast({
+        title: "Nahráno",
+        description: `PDF pozadí (${side === 'front' ? 'přední' : 'zadní'} strana) bylo úspěšně nahráno`,
+      });
+    } catch (error) {
+      console.error("Error uploading PDF:", error);
+      toast({
+        title: "Chyba",
+        description: "Nepodařilo se nahrát PDF",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSave = async () => {
@@ -132,7 +178,8 @@ export const AnalysisTemplateTab = ({ roomId }: AnalysisTemplateTabProps) => {
           .update({
             name: formData.name,
             slots_json: formData.slotsJson,
-            background_url: formData.backgroundUrl || null,
+            background_front_url: formData.backgroundFrontUrl || null,
+            background_back_url: formData.backgroundBackUrl || null,
             version: template.version + 1,
           })
           .eq("id", template.id);
@@ -146,7 +193,8 @@ export const AnalysisTemplateTab = ({ roomId }: AnalysisTemplateTabProps) => {
             room_id: roomId,
             name: formData.name,
             slots_json: formData.slotsJson,
-            background_url: formData.backgroundUrl || null,
+            background_front_url: formData.backgroundFrontUrl || null,
+            background_back_url: formData.backgroundBackUrl || null,
             version: 1,
           });
 
@@ -223,18 +271,61 @@ export const AnalysisTemplateTab = ({ roomId }: AnalysisTemplateTabProps) => {
           </div>
 
           <div>
-            <Label htmlFor="background-url">URL pozadí PDF</Label>
+            <Label htmlFor="background-front">PDF pozadí – přední strana</Label>
             <p className="text-xs text-muted-foreground mb-2">
-              Zatím zadejte URL, nahrávání souborů bude přidáno později
+              Nahrajte PDF soubor pro stranu 1 (max 10 MB)
             </p>
-            <Input
-              id="background-url"
-              value={formData.backgroundUrl}
-              onChange={(e) =>
-                setFormData({ ...formData, backgroundUrl: e.target.value })
-              }
-              placeholder="https://..."
-            />
+            <div className="flex gap-2 items-center">
+              <Input
+                id="background-front"
+                type="file"
+                accept="application/pdf"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleFileUpload(file, 'front');
+                }}
+                disabled={uploadingFront}
+              />
+              {formData.backgroundFrontUrl && (
+                <a
+                  href={formData.backgroundFrontUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-primary hover:underline"
+                >
+                  Zobrazit
+                </a>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="background-back">PDF pozadí – zadní strana</Label>
+            <p className="text-xs text-muted-foreground mb-2">
+              Nahrajte PDF soubor pro stranu 2 (max 10 MB)
+            </p>
+            <div className="flex gap-2 items-center">
+              <Input
+                id="background-back"
+                type="file"
+                accept="application/pdf"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleFileUpload(file, 'back');
+                }}
+                disabled={uploadingBack}
+              />
+              {formData.backgroundBackUrl && (
+                <a
+                  href={formData.backgroundBackUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-primary hover:underline"
+                >
+                  Zobrazit
+                </a>
+              )}
+            </div>
           </div>
 
           <div className="flex justify-end">
