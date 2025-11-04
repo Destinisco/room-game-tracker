@@ -5,10 +5,33 @@ import personalityIcon from '@/assets/pdf-icons/personality-icon.svg';
 import destiniscoLogo from '@/assets/pdf-icons/destinisco-logo.svg';
 
 export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps) => {
-  // Ensure arrays exist with default values
-  const strengths = analysis.strengths || [];
-  const weaknesses = analysis.weaknesses || [];
-  const personalityTraits = analysis.personalityTraits || [];
+  // Fallback pro starý formát dat
+  const strengths = analysis.strengths || 
+    ((analysis as any).features || []).slice(0, 3).map((f: string) => ({
+      title: "Silná stránka",
+      description: f
+    }));
+
+  const weaknesses = analysis.weaknesses || 
+    ((analysis as any).flaws || []).slice(0, 3).map((f: string) => ({
+      title: "Oblast k rozvoji",
+      description: f
+    }));
+
+  const trust = analysis.trust || (analysis as any).recommendations || "Informace o důvěře nejsou k dispozici.";
+  
+  const personalityTraits = analysis.personalityTraits || 
+    ((analysis as any).behavior_insights || []).slice(0, 6).map((insight: string) => ({
+      title: "Osobnostní rys",
+      description: insight
+    }));
+
+  const collaboration = analysis.collaboration || (analysis as any).team_dynamics || "Informace o spolupráci nejsou k dispozici.";
+  
+  const role = analysis.role || "Neznámá role";
+  const code = analysis.code || "N/A";
+  const color = analysis.color || player.band_color || "neznámá";
+  const gameCode = analysis.gameCode || "N/A";
 
   return (
     <div className="pdf-container">
@@ -49,7 +72,7 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
               DESTINISCO NEXUS™
             </h1>
             <p className="text-sm text-gray-600" style={{ fontFamily: "'Khand', sans-serif" }}>
-              Psychoanalýza hráče: {analysis.color}
+              Psychoanalýza hráče: {color}
             </p>
             <div className="mt-3">
               <svg width="40" height="40" viewBox="0 0 40 40" className="mx-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -60,13 +83,13 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
           </div>
 
           {/* Role Badge */}
-          {analysis.role && (
+          {role && (
             <div className="bg-black text-white text-center py-3 px-6 mx-20 mb-4" style={{ borderRadius: '2px' }}>
               <p className="text-xs uppercase mb-1" style={{ fontFamily: "'Khand', sans-serif", letterSpacing: '1px' }}>
                 Vaše role:
               </p>
               <p className="text-xl font-bold" style={{ fontFamily: "'Khand', sans-serif" }}>
-                {analysis.role}
+                {role}
               </p>
             </div>
           )}
@@ -74,7 +97,7 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
           {/* Disclaimer */}
           <p className="text-xs text-center text-gray-500 mb-6 leading-relaxed">
             Herní psychoanalýza byla automaticky vygenerována dle nasbíraných herních dat z únikové hry Důvěra. 
-            Kód hry: {analysis.gameCode || 'N/A'}
+            Kód hry: {gameCode}
           </p>
 
           {/* Strengths & Weaknesses - 2 columns */}
@@ -130,7 +153,7 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
               Důvěra (v sebe, ostatní a příběh)
             </h2>
             <p className="text-xs text-gray-700 leading-relaxed text-justify">
-              {analysis.trust || 'Analýza důvěry není k dispozici.'}
+              {trust}
             </p>
           </div>
         </div>
@@ -186,7 +209,7 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
               Pro zlepšení spolupráce ve stejném týmu
             </h2>
             <p className="text-xs text-gray-700 leading-relaxed text-justify">
-              {analysis.collaboration || 'Doporučení pro spolupráci nejsou k dispozici.'}
+              {collaboration}
             </p>
           </div>
 
