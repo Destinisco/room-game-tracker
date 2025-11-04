@@ -64,18 +64,21 @@ export type Database = {
           id: string
           name: string
           room_id: string
+          updated_at: string | null
         }
         Insert: {
           created_at?: string | null
           id?: string
           name: string
           room_id: string
+          updated_at?: string | null
         }
         Update: {
           created_at?: string | null
           id?: string
           name?: string
           room_id?: string
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -94,6 +97,7 @@ export type Database = {
           id: string
           label: string
           psychological_meaning: string | null
+          updated_at: string | null
         }
         Insert: {
           category_id: string
@@ -101,6 +105,7 @@ export type Database = {
           id?: string
           label: string
           psychological_meaning?: string | null
+          updated_at?: string | null
         }
         Update: {
           category_id?: string
@@ -108,6 +113,7 @@ export type Database = {
           id?: string
           label?: string
           psychological_meaning?: string | null
+          updated_at?: string | null
         }
         Relationships: [
           {
