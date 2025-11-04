@@ -144,17 +144,31 @@ serve(async (req) => {
     const behaviorLexicon = room.behavior_lexicon || {};
 
     // Build system prompt
-    const systemPrompt = `Jsi expert na psychologickou analýzu a hodnocení týmové spolupráce.
+    const systemPrompt = `Jsi expert na psychologickou analýzu a hodnocení týmové spolupráce v únikových hrách.
 ${aiBrief}
 
 Vždy vrať validní JSON s následujícími klíči:
-- story: Krátký příběh o hráči (2-3 věty)
-- strengths: Pole 3 silných stránek
-- flaws: Pole 3 oblastí k rozvoji
-- features: Pole 3 charakteristických rysů
-- recommendations: Text s doporučeními (3-4 věty)
+- role: Typ role hráče (např. "Supporter", "Navigator", "Analyzer", "Leader")
+- strengths: Pole 3 objektů s klíči "title" a "description" pro silné stránky
+- weaknesses: Pole 3 objektů s klíči "title" a "description" pro oblasti k rozvoji
+- trust: Dlouhý text (100-150 slov) o důvěře hráče v sebe, ostatní a příběh
+- personalityTraits: Pole 3 objektů s klíči "title" a "description" pro klíčové osobnostní rysy
+- collaboration: Dlouhý text (100-150 slov) s doporučeními pro budoucí spolupráci v týmu
+
+Formát pro strengths, weaknesses a personalityTraits:
+[
+  { "title": "Název vlastnosti", "description": "Podrobný popis (2-3 věty)" },
+  ...
+]
 
 Všechny texty v češtině. Použij informace o zaškrtnutém chování a jejich psychologických významech.`;
+
+    // Get formatted date for game code
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = String(now.getFullYear()).slice(-2);
+    const gameCode = `58-${day}${month}${year}`;
 
     // Build user prompt with behavior meanings
     const userPrompt = `Analyzuj tohoto hráče:
@@ -167,7 +181,7 @@ ${JSON.stringify(behaviorLexicon, null, 2)}
 Zaškrtnuté chování s významy:
 ${JSON.stringify(behaviorContext, null, 2)}
 
-Vrať JSON s klíči: story, strengths (array[3]), flaws (array[3]), features (array[3]), recommendations.`;
+Vrať JSON s klíči: role, strengths (array[3] objektů s title+description), weaknesses (array[3] objektů s title+description), trust (dlouhý text), personalityTraits (array[3] objektů s title+description), collaboration (dlouhý text).`;
 
     console.log("Volám Lovable AI...");
 
@@ -229,8 +243,13 @@ Vrať JSON s klíči: story, strengths (array[3]), flaws (array[3]), features (a
       throw new Error("AI nevrátilo platný JSON");
     }
 
+    // Add dynamic data to AI output
+    aiOutputJson.code = player.session.code || "N/A";
+    aiOutputJson.color = player.band_color || "Neurčeno";
+    aiOutputJson.gameCode = gameCode;
+
     // Validate required keys
-    const requiredKeys = ["story", "strengths", "flaws", "features", "recommendations"];
+    const requiredKeys = ["role", "strengths", "weaknesses", "trust", "personalityTraits", "collaboration"];
     const missingKeys = requiredKeys.filter((key: string) => !(key in aiOutputJson));
     if (missingKeys.length > 0) {
       console.error("Chybějící klíče:", missingKeys);

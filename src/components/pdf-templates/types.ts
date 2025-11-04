@@ -1,19 +1,18 @@
 export interface PdfTemplateProps {
   analysis: {
-    code?: string;
-    color?: string;
-    role?: string;
-    faithText?: string;
-    strength1_name?: string;
-    strength1_text?: string;
-    strength2_name?: string;
-    strength2_text?: string;
-    flaw1_name?: string;
-    flaw1_text?: string;
-    teamTips?: string;
+    role: string;
+    code: string;
+    color: string;
+    gameCode: string;
+    strengths: Array<{ title: string; description: string }>;
+    weaknesses: Array<{ title: string; description: string }>;
+    trust: string;
+    personalityTraits: Array<{ title: string; description: string }>;
+    collaboration: string;
     [key: string]: any;
   };
   player: {
+    full_name?: string;
     first_name?: string;
     last_name?: string;
     email?: string;

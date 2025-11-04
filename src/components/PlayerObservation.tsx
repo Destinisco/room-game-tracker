@@ -676,7 +676,14 @@ export const PlayerObservation = ({ playerId, roomId }: PlayerObservationProps) 
             )}
           </Tooltip>
 
-          {isAdmin && analysis && player && template && (
+          {generating && (
+            <div className="mt-6 pt-6 border-t text-center py-8">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <p className="mt-2 text-sm text-muted-foreground">Generuji analýzu...</p>
+            </div>
+          )}
+
+          {isAdmin && analysis && player && template && !generating && (
             <div className="mt-6 pt-6 border-t">
               <h3 className="text-lg font-semibold mb-4">Analýza hráče</h3>
               <PlayerAnalysisPreview 
