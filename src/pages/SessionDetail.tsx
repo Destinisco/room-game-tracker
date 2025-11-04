@@ -120,12 +120,11 @@ const SessionDetail = () => {
           setAnalyses(analysesData);
         }
 
-        // Fetch published template
+        // Fetch latest analysis template
         const { data: templateData, error: templateError } = await supabase
-          .from("game_templates")
+          .from("analysis_templates")
           .select("*")
           .eq("room_id", sessionData.room_id)
-          .eq("status", "published")
           .order("version", { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -436,16 +435,17 @@ const SessionDetail = () => {
 
   const handleViewAnalysis = async (playerId: string) => {
     const analysis = analyses.find(a => a.player_id === playerId);
-    if (!analysis) return;
+    if (!analysis || !currentTemplate) return;
 
     setSelectedAnalysis({
       playerId,
       analysis: analysis.ai_output_json,
       template: {
-        name: currentTemplate?.name || "",
-        accentColor: currentTemplate?.accent_color || "#3b82f6",
-        fontFamily: currentTemplate?.font_family || "Inter",
-        layoutDefinition: currentTemplate?.layout_definition || [],
+        name: currentTemplate.name,
+        slotsJson: JSON.parse(currentTemplate.slots_json || "{}"),
+        backgroundFrontUrl: currentTemplate.background_front_url,
+        backgroundBackUrl: currentTemplate.background_back_url,
+        version: currentTemplate.version,
       },
     });
   };
@@ -655,18 +655,6 @@ const SessionDetail = () => {
                   playerId={selectedAnalysis.playerId}
                   analysis={selectedAnalysis.analysis}
                   template={selectedAnalysis.template}
-                  onPrint={() => {
-                    toast({
-                      title: "Tisk zahájen",
-                      description: "Dokument se připravuje k tisku",
-                    });
-                  }}
-                  onDownload={() => {
-                    toast({
-                      title: "Stahování",
-                      description: "PDF se připravuje ke stažení",
-                    });
-                  }}
                 />
               </CardContent>
             </Card>

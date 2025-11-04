@@ -177,12 +177,11 @@ export const PlayerObservation = ({ playerId, roomId }: PlayerObservationProps) 
           setAnalysis(analysisData);
         }
 
-        // Load published template
+        // Load latest analysis template
         const { data: templateData } = await supabase
-          .from("game_templates")
+          .from("analysis_templates")
           .select("*")
           .eq("room_id", roomId)
-          .eq("status", "published")
           .order("version", { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -671,9 +670,10 @@ export const PlayerObservation = ({ playerId, roomId }: PlayerObservationProps) 
                 analysis={analysis.ai_output_json}
                 template={{
                   name: template.name,
-                  accentColor: template.accent_color,
-                  fontFamily: template.font_family,
-                  layoutDefinition: template.layout_definition,
+                  slotsJson: JSON.parse(template.slots_json || "{}"),
+                  backgroundFrontUrl: template.background_front_url,
+                  backgroundBackUrl: template.background_back_url,
+                  version: template.version,
                 }}
               />
             </div>
