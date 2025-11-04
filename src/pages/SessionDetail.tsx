@@ -64,6 +64,7 @@ const SessionDetail = () => {
     playerId: string;
     analysis: any;
     template: any;
+    player?: any;
   } | null>(null);
   const [currentTemplate, setCurrentTemplate] = useState<any>(null);
 
@@ -120,11 +121,17 @@ const SessionDetail = () => {
           setAnalyses(analysesData);
         }
 
-        // Fetch latest analysis template
+        // Fetch latest analysis template with room_type info
         const { data: templateData, error: templateError } = await supabase
           .from("analysis_templates")
-          .select("*")
-          .eq("room_id", sessionData.room_id)
+          .select(`
+            *,
+            room_type:room_types!room_type_id (
+              name,
+              pdf_template_component
+            )
+          `)
+          .eq("room_type_id", roomData.room_type_id)
           .order("version", { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -437,15 +444,18 @@ const SessionDetail = () => {
     const analysis = analyses.find(a => a.player_id === playerId);
     if (!analysis || !currentTemplate) return;
 
+    const player = players.find(p => p.id === playerId);
+
     setSelectedAnalysis({
       playerId,
       analysis: analysis.ai_output_json,
+      player,
       template: {
         name: currentTemplate.name,
-        slotsJson: JSON.parse(currentTemplate.slots_json || "{}"),
         backgroundFrontUrl: currentTemplate.background_front_url,
         backgroundBackUrl: currentTemplate.background_back_url,
         version: currentTemplate.version,
+        pdfTemplateComponent: currentTemplate.room_type?.pdf_template_component || 'DefaultTemplate',
       },
     });
   };
@@ -655,6 +665,7 @@ const SessionDetail = () => {
                   playerId={selectedAnalysis.playerId}
                   analysis={selectedAnalysis.analysis}
                   template={selectedAnalysis.template}
+                  player={selectedAnalysis.player}
                 />
               </CardContent>
             </Card>

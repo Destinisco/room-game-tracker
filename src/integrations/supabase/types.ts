@@ -21,7 +21,8 @@ export type Database = {
           created_at: string
           id: string
           name: string
-          room_id: string
+          room_id: string | null
+          room_type_id: string | null
           slots_json: string
           updated_at: string
           version: number
@@ -32,7 +33,8 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
-          room_id: string
+          room_id?: string | null
+          room_type_id?: string | null
           slots_json: string
           updated_at?: string
           version?: number
@@ -43,7 +45,8 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
-          room_id?: string
+          room_id?: string | null
+          room_type_id?: string | null
           slots_json?: string
           updated_at?: string
           version?: number
@@ -56,6 +59,13 @@ export type Database = {
             referencedRelation: "rooms"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "analysis_templates_room_type_id_fkey"
+            columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "room_types"
+            referencedColumns: ["id"]
+          },
         ]
       }
       behavior_categories: {
@@ -63,21 +73,24 @@ export type Database = {
           created_at: string | null
           id: string
           name: string
-          room_id: string
+          room_id: string | null
+          room_type_id: string | null
           updated_at: string | null
         }
         Insert: {
           created_at?: string | null
           id?: string
           name: string
-          room_id: string
+          room_id?: string | null
+          room_type_id?: string | null
           updated_at?: string | null
         }
         Update: {
           created_at?: string | null
           id?: string
           name?: string
-          room_id?: string
+          room_id?: string | null
+          room_type_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -86,6 +99,13 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "behavior_categories_room_type_id_fkey"
+            columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "room_types"
             referencedColumns: ["id"]
           },
         ]
@@ -445,21 +465,24 @@ export type Database = {
           description: string | null
           id: string
           name: string
-          room_id: string
+          room_id: string | null
+          room_type_id: string | null
         }
         Insert: {
           created_at?: string | null
           description?: string | null
           id?: string
           name: string
-          room_id: string
+          room_id?: string | null
+          room_type_id?: string | null
         }
         Update: {
           created_at?: string | null
           description?: string | null
           id?: string
           name?: string
-          room_id?: string
+          room_id?: string | null
+          room_type_id?: string | null
         }
         Relationships: [
           {
@@ -469,7 +492,41 @@ export type Database = {
             referencedRelation: "rooms"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "role_templates_room_type_id_fkey"
+            columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "room_types"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      room_types: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          pdf_template_component: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          pdf_template_component: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          pdf_template_component?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       rooms: {
         Row: {
@@ -482,6 +539,7 @@ export type Database = {
           edit_code: string | null
           id: string
           name: string
+          room_type_id: string | null
           time_limit_minutes: number
           updated_at: string | null
         }
@@ -495,6 +553,7 @@ export type Database = {
           edit_code?: string | null
           id?: string
           name: string
+          room_type_id?: string | null
           time_limit_minutes: number
           updated_at?: string | null
         }
@@ -508,10 +567,19 @@ export type Database = {
           edit_code?: string | null
           id?: string
           name?: string
+          room_type_id?: string | null
           time_limit_minutes?: number
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "rooms_room_type_id_fkey"
+            columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "room_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {

@@ -22,7 +22,8 @@ interface AnalysisTemplate {
 }
 
 interface AnalysisTemplateTabProps {
-  roomId: string;
+  roomTypeId: string;
+  pdfTemplateComponent: string;
 }
 
 const DEFAULT_SLOTS_JSON = `{
@@ -44,16 +45,14 @@ const DEFAULT_SLOTS_JSON = `{
   ]
 }`;
 
-export const AnalysisTemplateTab = ({ roomId }: AnalysisTemplateTabProps) => {
+export const AnalysisTemplateTab = ({ roomTypeId, pdfTemplateComponent }: AnalysisTemplateTabProps) => {
   const [template, setTemplate] = useState<AnalysisTemplate | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [jsonError, setJsonError] = useState("");
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
     name: "",
-    slotsJson: DEFAULT_SLOTS_JSON,
     backgroundFrontUrl: "",
     backgroundBackUrl: "",
   });
@@ -62,14 +61,14 @@ export const AnalysisTemplateTab = ({ roomId }: AnalysisTemplateTabProps) => {
 
   useEffect(() => {
     fetchTemplate();
-  }, [roomId]);
+  }, [roomTypeId]);
 
   const fetchTemplate = async () => {
     try {
       const { data, error } = await supabase
         .from("analysis_templates")
         .select("*")
-        .eq("room_id", roomId)
+        .eq("room_type_id", roomTypeId)
         .order("version", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -80,7 +79,6 @@ export const AnalysisTemplateTab = ({ roomId }: AnalysisTemplateTabProps) => {
         setTemplate(data);
         setFormData({
           name: data.name,
-          slotsJson: data.slots_json,
           backgroundFrontUrl: data.background_front_url || "",
           backgroundBackUrl: data.background_back_url || "",
         });
@@ -92,29 +90,13 @@ export const AnalysisTemplateTab = ({ roomId }: AnalysisTemplateTabProps) => {
     }
   };
 
-  const validateJSON = (jsonString: string) => {
-    try {
-      JSON.parse(jsonString);
-      setJsonError("");
-      return true;
-    } catch (e) {
-      setJsonError("Nevalidní JSON formát");
-      return false;
-    }
-  };
-
-  const handleSlotsJsonChange = (value: string) => {
-    setFormData({ ...formData, slotsJson: value });
-    validateJSON(value);
-  };
-
   const handleFileUpload = async (file: File, side: 'front' | 'back') => {
     const setUploading = side === 'front' ? setUploadingFront : setUploadingBack;
     setUploading(true);
 
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${roomId}_${side}_${Date.now()}.${fileExt}`;
+      const fileName = `${roomTypeId}_${side}_${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
 
       const { error: uploadError } = await supabase.storage
@@ -159,15 +141,6 @@ export const AnalysisTemplateTab = ({ roomId }: AnalysisTemplateTabProps) => {
       return;
     }
 
-    if (!validateJSON(formData.slotsJson)) {
-      toast({
-        title: "Chyba",
-        description: "Opravte JSON před uložením",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setSaving(true);
 
     try {
@@ -177,7 +150,6 @@ export const AnalysisTemplateTab = ({ roomId }: AnalysisTemplateTabProps) => {
           .from("analysis_templates")
           .update({
             name: formData.name,
-            slots_json: formData.slotsJson,
             background_front_url: formData.backgroundFrontUrl || null,
             background_back_url: formData.backgroundBackUrl || null,
             version: template.version + 1,
@@ -190,9 +162,9 @@ export const AnalysisTemplateTab = ({ roomId }: AnalysisTemplateTabProps) => {
         const { error } = await supabase
           .from("analysis_templates")
           .insert({
-            room_id: roomId,
+            room_type_id: roomTypeId,
             name: formData.name,
-            slots_json: formData.slotsJson,
+            slots_json: '{}',
             background_front_url: formData.backgroundFrontUrl || null,
             background_back_url: formData.backgroundBackUrl || null,
             version: 1,
@@ -228,12 +200,25 @@ export const AnalysisTemplateTab = ({ roomId }: AnalysisTemplateTabProps) => {
       <div>
         <h3 className="text-lg font-semibold mb-2">Analytická šablona PDF</h3>
         <p className="text-sm text-muted-foreground">
-          Definujte layout a pozice textů pro generované PDF analýzy
+          Nastavení PDF šablony pro generované analýzy hráčů
         </p>
       </div>
 
       <Card>
         <CardContent className="pt-6 space-y-4">
+          <div>
+            <Label>PDF Template komponenta</Label>
+            <div className="p-3 bg-muted rounded-md font-mono text-sm mt-2">
+              {pdfTemplateComponent}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Komponenta je definována v kódu: 
+              <code className="ml-1 bg-muted px-1 py-0.5 rounded">
+                src/components/pdf-templates/{pdfTemplateComponent}.tsx
+              </code>
+            </p>
+          </div>
+
           <div>
             <div className="flex items-center justify-between mb-2">
               <Label htmlFor="template-name">Název šablony *</Label>
@@ -251,23 +236,6 @@ export const AnalysisTemplateTab = ({ roomId }: AnalysisTemplateTabProps) => {
               }
               placeholder="např. Důvěra – hlavní šablona"
             />
-          </div>
-
-          <div>
-            <Label htmlFor="slots-json">Slots JSON *</Label>
-            <p className="text-xs text-muted-foreground mb-2">
-              Definice pozic a stylů textových polí v PDF
-            </p>
-            <Textarea
-              id="slots-json"
-              value={formData.slotsJson}
-              onChange={(e) => handleSlotsJsonChange(e.target.value)}
-              className={`font-mono text-xs ${jsonError ? "border-destructive" : ""}`}
-              rows={20}
-            />
-            {jsonError && (
-              <p className="text-xs text-destructive mt-1">{jsonError}</p>
-            )}
           </div>
 
           <div>
@@ -329,7 +297,7 @@ export const AnalysisTemplateTab = ({ roomId }: AnalysisTemplateTabProps) => {
           </div>
 
           <div className="flex justify-end">
-            <Button onClick={handleSave} disabled={saving || !!jsonError}>
+            <Button onClick={handleSave} disabled={saving}>
               <Save className="w-4 h-4 mr-2" />
               {saving ? "Ukládání..." : "Uložit šablonu"}
             </Button>

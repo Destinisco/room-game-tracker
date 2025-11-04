@@ -177,17 +177,31 @@ export const PlayerObservation = ({ playerId, roomId }: PlayerObservationProps) 
           setAnalysis(analysisData);
         }
 
-        // Load latest analysis template
-        const { data: templateData } = await supabase
-          .from("analysis_templates")
-          .select("*")
-          .eq("room_id", roomId)
-          .order("version", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        // Load latest analysis template with room_type info
+        const { data: roomData } = await supabase
+          .from("rooms")
+          .select("room_type_id")
+          .eq("id", roomId)
+          .single();
 
-        if (templateData) {
-          setTemplate(templateData);
+        if (roomData?.room_type_id) {
+          const { data: templateData } = await supabase
+            .from("analysis_templates")
+            .select(`
+              *,
+              room_type:room_types!room_type_id (
+                name,
+                pdf_template_component
+              )
+            `)
+            .eq("room_type_id", roomData.room_type_id)
+            .order("version", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (templateData) {
+            setTemplate(templateData);
+          }
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -668,12 +682,13 @@ export const PlayerObservation = ({ playerId, roomId }: PlayerObservationProps) 
               <PlayerAnalysisPreview 
                 playerId={player.id}
                 analysis={analysis.ai_output_json}
+                player={player}
                 template={{
                   name: template.name,
-                  slotsJson: JSON.parse(template.slots_json || "{}"),
                   backgroundFrontUrl: template.background_front_url,
                   backgroundBackUrl: template.background_back_url,
                   version: template.version,
+                  pdfTemplateComponent: template.room_type?.pdf_template_component || 'DefaultTemplate',
                 }}
               />
             </div>

@@ -15,10 +15,10 @@ interface RoleTemplate {
 }
 
 interface RolesTabProps {
-  roomId: string;
+  roomTypeId: string;
 }
 
-export const RolesTab = ({ roomId }: RolesTabProps) => {
+export const RolesTab = ({ roomTypeId }: RolesTabProps) => {
   const [roles, setRoles] = useState<RoleTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -28,14 +28,14 @@ export const RolesTab = ({ roomId }: RolesTabProps) => {
     setLoading(false);
 
     const channel = supabase
-      .channel(`roles-${roomId}`)
+      .channel(`roles-${roomTypeId}`)
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
           table: "role_templates",
-          filter: `room_id=eq.${roomId}`,
+          filter: `room_type_id=eq.${roomTypeId}`,
         },
         () => fetchRoles()
       )
@@ -44,12 +44,12 @@ export const RolesTab = ({ roomId }: RolesTabProps) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [roomId]);
+  }, [roomTypeId]);
 
   const handleAddRole = async () => {
     try {
       const { error } = await supabase.from("role_templates").insert({
-        room_id: roomId,
+        room_type_id: roomTypeId,
         name: "",
         description: "",
       });
@@ -106,7 +106,7 @@ export const RolesTab = ({ roomId }: RolesTabProps) => {
       const { data, error } = await supabase
         .from("role_templates")
         .select("*")
-        .eq("room_id", roomId)
+        .eq("room_type_id", roomTypeId)
         .order("created_at", { ascending: true });
 
       if (error) throw error;

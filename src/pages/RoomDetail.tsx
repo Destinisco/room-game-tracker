@@ -35,6 +35,7 @@ interface Room {
   edit_code?: string | null;
   ai_brief?: string | null;
   behavior_lexicon?: any;
+  room_type_id?: string;
 }
 
 const RoomDetail = () => {
@@ -43,6 +44,7 @@ const RoomDetail = () => {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const [room, setRoom] = useState<Room | null>(null);
+  const [roomType, setRoomType] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isCreateGameOpen, setIsCreateGameOpen] = useState(false);
@@ -67,7 +69,14 @@ const RoomDetail = () => {
       try {
         const { data, error } = await supabase
           .from("rooms")
-          .select("*")
+          .select(`
+            *,
+            room_type:room_types!room_type_id (
+              id,
+              name,
+              pdf_template_component
+            )
+          `)
           .eq("id", id)
           .maybeSingle();
 
@@ -84,6 +93,9 @@ const RoomDetail = () => {
         }
 
         setRoom(data);
+        if (data.room_type) {
+          setRoomType(data.room_type);
+        }
         setFormData({
           name: data.name,
           branch: data.branch || "",
@@ -450,10 +462,10 @@ const RoomDetail = () => {
             </div>
           </TabsContent>
 
-          {isEditMode && (
+          {isEditMode && roomType && (
             <>
               <TabsContent value="roles">
-                <RolesTab roomId={room.id} />
+                <RolesTab roomTypeId={roomType.id} />
               </TabsContent>
 
               <TabsContent value="categories">
@@ -461,7 +473,10 @@ const RoomDetail = () => {
               </TabsContent>
 
               <TabsContent value="template">
-                <AnalysisTemplateTab roomId={room.id} />
+                <AnalysisTemplateTab 
+                  roomTypeId={roomType.id} 
+                  pdfTemplateComponent={roomType.pdf_template_component}
+                />
               </TabsContent>
             </>
           )}
