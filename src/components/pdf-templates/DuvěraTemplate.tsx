@@ -5,7 +5,7 @@ import personalityIcon from '@/assets/pdf-icons/personality-icon.svg';
 import destiniscoLogo from '@/assets/pdf-icons/destinisco-logo.svg';
 
 export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps) => {
-  // Fallback pro starý formát dat
+  // Parse data with fallbacks for old format
   const strengths = analysis.strengths || 
     ((analysis as any).features || []).slice(0, 3).map((f: string) => ({
       title: "Silná stránka",
@@ -21,7 +21,7 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
   const trust = analysis.trust || (analysis as any).recommendations || "Informace o důvěře nejsou k dispozici.";
   
   const personalityTraits = analysis.personalityTraits || 
-    ((analysis as any).behavior_insights || []).slice(0, 6).map((insight: string) => ({
+    ((analysis as any).behavior_insights || []).slice(0, 3).map((insight: string) => ({
       title: "Osobnostní rys",
       description: insight
     }));
@@ -33,86 +33,84 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
   const color = analysis.color || player.band_color || "neznámá";
   const gameCode = analysis.gameCode || "N/A";
 
+  // Prepare background styles
+  const backgroundFrontStyle = template.backgroundFrontUrl 
+    ? { backgroundImage: `url(${template.backgroundFrontUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+    : {};
+  
+  const backgroundBackStyle = template.backgroundBackUrl
+    ? { backgroundImage: `url(${template.backgroundBackUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+    : {};
+
   return (
     <div className="pdf-container">
-      {/* Strana 1 */}
+      {/* Front Page */}
       <div 
         className="pdf-page page-front relative" 
         style={{
           width: '210mm',
           height: '297mm',
-          padding: '20mm',
+          padding: '15mm',
           pageBreakAfter: 'always',
           backgroundColor: '#ffffff',
-          fontFamily: "'Open Sans', sans-serif",
+          fontFamily: "'Readex Pro', sans-serif",
+          ...backgroundFrontStyle,
         }}
       >
-        {/* Background Pattern */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage: `
-              repeating-linear-gradient(0deg, rgba(0,0,0,0.05) 0px, transparent 1px, transparent 20px),
-              repeating-linear-gradient(90deg, rgba(0,0,0,0.05) 0px, transparent 1px, transparent 20px)
-            `,
-            zIndex: 0,
-          }}
-        />
-
         <div className="relative z-10 h-full flex flex-col">
           {/* Header */}
-          <div className="text-center mb-6 pb-4 border-b border-gray-200">
-            <div className="mb-2">
-              <svg width="50" height="50" viewBox="0 0 50 50" className="mx-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="25" cy="25" r="20" fill="#1a1a1a"/>
-                <path d="M25 10 L25 40 M15 25 L35 25" stroke="white" strokeWidth="3"/>
-              </svg>
-            </div>
-            <h1 className="text-3xl font-bold mb-1" style={{ fontFamily: "'Khand', sans-serif", letterSpacing: '2px' }}>
-              DESTINISCO NEXUS™
+          <div className="text-center mb-4">
+            <h1 className="text-2xl font-semibold mb-1">
+              Destinisco Nexus™
             </h1>
-            <p className="text-sm text-gray-600" style={{ fontFamily: "'Khand', sans-serif" }}>
+            <p className="text-sm text-gray-700">
               Psychoanalýza hráče: {color}
             </p>
-            <div className="mt-3">
-              <svg width="40" height="40" viewBox="0 0 40 40" className="mx-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="20" cy="12" r="6" fill="#1a1a1a"/>
-                <path d="M10 35C10 27 14 23 20 23C26 23 30 27 30 35" stroke="#1a1a1a" strokeWidth="3"/>
+          </div>
+
+          {/* Centered Icon/Logo Space */}
+          <div className="flex justify-center mb-4">
+            <div className="w-24 h-24 flex items-center justify-center">
+              <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="40" cy="40" r="35" fill="none" stroke="#1a1a1a" strokeWidth="2"/>
+                <path d="M40 15 L40 65 M20 40 L60 40" stroke="#1a1a1a" strokeWidth="2"/>
               </svg>
             </div>
           </div>
 
-          {/* Role Badge */}
+          {/* Role Badge - flexible height */}
           {role && (
-            <div className="bg-black text-white text-center py-3 px-6 mx-20 mb-4" style={{ borderRadius: '2px' }}>
-              <p className="text-xs uppercase mb-1" style={{ fontFamily: "'Khand', sans-serif", letterSpacing: '1px' }}>
-                Vaše role:
-              </p>
-              <p className="text-xl font-bold" style={{ fontFamily: "'Khand', sans-serif" }}>
-                {role}
-              </p>
+            <div className="mb-4 flex justify-center">
+              <div className="bg-black text-white text-center py-2 px-8 inline-block">
+                <p className="text-xs uppercase mb-1">
+                  Vaše role:
+                </p>
+                <p className="text-lg font-bold">
+                  {role}
+                </p>
+              </div>
             </div>
           )}
 
           {/* Disclaimer */}
-          <p className="text-xs text-center text-gray-500 mb-6 leading-relaxed">
+          <p className="text-xs text-center text-gray-600 mb-6 leading-relaxed px-8">
             Herní psychoanalýza byla automaticky vygenerována dle nasbíraných herních dat z únikové hry Důvěra. 
             Kód hry: {gameCode}
           </p>
 
           {/* Strengths & Weaknesses - 2 columns */}
-          <div className="grid grid-cols-2 gap-6 mb-6 flex-1">
+          <div className="grid grid-cols-2 gap-8 mb-6 flex-1">
             {/* Strengths */}
             <div>
-              <h2 className="text-lg font-bold text-center mb-4 uppercase" style={{ fontFamily: "'Khand', sans-serif", letterSpacing: '1px' }}>
-                Silné stránky
+              <h2 className="text-base font-bold mb-4">
+                Silné stránky:
               </h2>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {strengths.slice(0, 3).map((item, idx) => (
-                  <div key={idx} className="flex gap-2">
+                  <div key={idx} className="flex gap-2 border border-gray-300 p-3 rounded">
                     <img src={strengthIcon} alt="" className="w-5 h-5 flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-sm font-semibold mb-1" style={{ fontFamily: "'Khand', sans-serif" }}>
+                      <p className="text-xs font-semibold mb-1">
                         {item.title}
                       </p>
                       <p className="text-xs text-gray-700 leading-snug">
@@ -126,15 +124,15 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
 
             {/* Weaknesses */}
             <div>
-              <h2 className="text-lg font-bold text-center mb-4 uppercase" style={{ fontFamily: "'Khand', sans-serif", letterSpacing: '1px' }}>
-                Oblasti k rozvoji
+              <h2 className="text-base font-bold mb-4">
+                Slabé stránky:
               </h2>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {weaknesses.slice(0, 3).map((item, idx) => (
-                  <div key={idx} className="flex gap-2">
+                  <div key={idx} className="flex gap-2 border border-gray-300 p-3 rounded">
                     <img src={weaknessIcon} alt="" className="w-5 h-5 flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-sm font-semibold mb-1" style={{ fontFamily: "'Khand', sans-serif" }}>
+                      <p className="text-xs font-semibold mb-1">
                         {item.title}
                       </p>
                       <p className="text-xs text-gray-700 leading-snug">
@@ -148,8 +146,8 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
           </div>
 
           {/* Trust Section */}
-          <div className="mt-auto">
-            <h2 className="text-lg font-bold text-center mb-3 uppercase" style={{ fontFamily: "'Khand', sans-serif", letterSpacing: '1px' }}>
+          <div className="mt-auto border-t border-gray-300 pt-4">
+            <h2 className="text-base font-bold text-center mb-3">
               Důvěra (v sebe, ostatní a příběh)
             </h2>
             <p className="text-xs text-gray-700 leading-relaxed text-justify">
@@ -159,40 +157,29 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
         </div>
       </div>
 
-      {/* Strana 2 */}
+      {/* Back Page */}
       <div 
         className="pdf-page page-back relative" 
         style={{
           width: '210mm',
           height: '297mm',
-          padding: '20mm',
+          padding: '15mm',
           backgroundColor: '#ffffff',
-          fontFamily: "'Open Sans', sans-serif",
+          fontFamily: "'Readex Pro', sans-serif",
+          ...backgroundBackStyle,
         }}
       >
-        {/* Background Pattern */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage: `
-              repeating-linear-gradient(0deg, rgba(0,0,0,0.05) 0px, transparent 1px, transparent 20px),
-              repeating-linear-gradient(90deg, rgba(0,0,0,0.05) 0px, transparent 1px, transparent 20px)
-            `,
-            zIndex: 0,
-          }}
-        />
-
         <div className="relative z-10 h-full flex flex-col">
-          {/* Personality Traits - 3 columns */}
-          <div className="mb-8 pb-6 border-b border-gray-200">
-            <h2 className="text-xl font-bold text-center mb-6 uppercase" style={{ fontFamily: "'Khand', sans-serif", letterSpacing: '1px' }}>
-              Osobnostní rysy
+          {/* Personality Traits - 3 columns with thirds layout */}
+          <div className="mb-8 pb-6">
+            <h2 className="text-xl font-bold text-center mb-8">
+              Predikce osobnostních rysů
             </h2>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-6">
               {personalityTraits.slice(0, 3).map((trait, idx) => (
                 <div key={idx} className="text-center">
-                  <img src={personalityIcon} alt="" className="w-6 h-6 mx-auto mb-2" />
-                  <p className="text-sm font-semibold mb-2" style={{ fontFamily: "'Khand', sans-serif" }}>
+                  <img src={personalityIcon} alt="" className="w-8 h-8 mx-auto mb-3" />
+                  <p className="text-sm font-semibold mb-2">
                     {trait.title}
                   </p>
                   <p className="text-xs text-gray-700 leading-snug">
@@ -205,17 +192,22 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
 
           {/* Collaboration Section */}
           <div className="flex-1 mb-8">
-            <h2 className="text-xl font-bold text-center mb-4 uppercase" style={{ fontFamily: "'Khand', sans-serif", letterSpacing: '1px' }}>
+            <h2 className="text-base font-bold text-center mb-4">
               Pro zlepšení spolupráce ve stejném týmu
             </h2>
-            <p className="text-xs text-gray-700 leading-relaxed text-justify">
+            <p className="text-xs text-gray-700 leading-relaxed text-justify mb-6">
               {collaboration}
             </p>
+            <h3 className="text-sm font-bold text-center mb-2">
+              Opakované hraní stejné Destinisco únikové hry ve stejném složení se doporučuje minimálně 6 měsíců od poslední hry
+            </h3>
           </div>
 
-          {/* Footer */}
-          <div className="mt-auto pt-6 border-t border-gray-200 flex justify-center">
-            <img src={destiniscoLogo} alt="Destinisco" className="h-16" />
+          {/* Footer with Logo */}
+          <div className="mt-auto pt-6 border-t border-gray-300 flex flex-col items-center">
+            <img src={destiniscoLogo} alt="Destinisco" className="h-12 mb-2" />
+            <p className="text-xs text-gray-600">Adaptivní únikové hry</p>
+            <p className="text-xs text-gray-600 mt-1">www.destinisco.com</p>
           </div>
         </div>
       </div>

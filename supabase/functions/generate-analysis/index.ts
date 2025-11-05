@@ -143,12 +143,25 @@ serve(async (req) => {
     const aiBrief = room.ai_brief || "Vytvořte pozitivní a motivující analýzu zaměřenou na osobnostní rozvoj.";
     const behaviorLexicon = room.behavior_lexicon || {};
 
-    // Build system prompt
+    // Language mapping
+    const languageMap: Record<string, { name: string; instruction: string }> = {
+      cs: { name: "češtině", instruction: "Všechny texty musí být v češtině." },
+      en: { name: "angličtině", instruction: "All texts must be in English." },
+      de: { name: "němčině", instruction: "Alle Texte müssen auf Deutsch sein." },
+      pl: { name: "polštině", instruction: "Wszystkie teksty muszą być po polsku." },
+      sk: { name: "slovenštině", instruction: "Všetky texty musia byť v slovenčine." },
+    };
+    
+    const selectedLanguage = languageMap[playerData.language] || languageMap.cs;
+
+    // Build system prompt with language instruction
     const systemPrompt = `Jsi expert na psychologickou analýzu a hodnocení týmové spolupráce v únikových hrách.
 ${aiBrief}
 
+DŮLEŽITÉ: ${selectedLanguage.instruction}
+
 Vždy vrať validní JSON s následujícími klíči:
-- role: Typ role hráče (např. "Supporter", "Navigator", "Analyzer", "Leader")
+- role: Typ role hráče (např. "Supporter", "Navigator", "Analyzer", "Leader") - ${selectedLanguage.instruction}
 - strengths: Pole 3 objektů s klíči "title" a "description" pro silné stránky
 - weaknesses: Pole 3 objektů s klíči "title" a "description" pro oblasti k rozvoji
 - trust: Dlouhý text (100-150 slov) o důvěře hráče v sebe, ostatní a příběh
@@ -161,7 +174,7 @@ Formát pro strengths, weaknesses a personalityTraits:
   ...
 ]
 
-Všechny texty v češtině. Použij informace o zaškrtnutém chování a jejich psychologických významech.`;
+${selectedLanguage.instruction} Použij informace o zaškrtnutém chování a jejich psychologických významech.`;
 
     // Get formatted date for game code
     const now = new Date();
