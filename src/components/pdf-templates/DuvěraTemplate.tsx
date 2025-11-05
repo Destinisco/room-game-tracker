@@ -54,13 +54,12 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
           pageBreakAfter: 'always',
           backgroundColor: '#ffffff',
           fontFamily: "'Readex Pro', sans-serif",
-          border: '2px solid #000000',
           ...backgroundFrontStyle,
         }}
       >
         <div className="relative z-10 h-full flex flex-col" style={{ height: 'calc(297mm - 30mm)' }}>
           {/* Top Third - Header + Logo + Role */}
-          <div className="flex flex-col" style={{ minHeight: '33.33%', paddingBottom: '20px', borderBottom: '2px solid #000000' }}>
+          <div className="flex flex-col" style={{ minHeight: '33.33%', paddingBottom: '20px', borderBottom: '1px solid #d0d0d0' }}>
             {/* Header */}
             <div className="text-center mb-4">
               <h1 className="text-2xl font-semibold mb-1">
@@ -84,7 +83,7 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
             {/* Role Badge - flexible height */}
             {role && (
               <div className="mb-4 flex justify-center">
-                <div className="bg-black text-white text-center py-2 px-8 inline-block">
+                <div className="bg-black text-white text-center py-2 px-8 inline-block rounded-lg">
                   <p className="text-xs uppercase mb-1">
                     Vaše role:
                   </p>
@@ -96,16 +95,15 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
             )}
 
             {/* Disclaimer */}
-            <p className="text-xs text-center text-gray-600 leading-relaxed px-8">
-              Herní psychoanalýza byla automaticky vygenerována dle nasbíraných herních dat z únikové hry Důvěra. 
-              Kód hry: {gameCode}
+            <p className="text-[10px] text-center text-gray-600 leading-tight px-8">
+              Herní psychoanalýza byla automaticky vygenerována dle nasbíraných herních dat z únikové hry Důvěra. Kód hry: {gameCode}
             </p>
           </div>
 
           {/* Middle Third - Strengths & Weaknesses */}
-          <div className="grid grid-cols-2 gap-0" style={{ minHeight: '33.33%', borderBottom: '2px solid #000000', paddingTop: '20px', paddingBottom: '20px' }}>
+          <div className="grid grid-cols-2 gap-8" style={{ minHeight: '33.33%', borderBottom: '1px solid #d0d0d0', paddingTop: '20px', paddingBottom: '20px' }}>
             {/* Strengths */}
-            <div style={{ borderRight: '2px solid #000000', paddingRight: '20px' }}>
+            <div>
               <h2 className="text-base font-bold mb-4">
                 Silné stránky:
               </h2>
@@ -127,7 +125,7 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
             </div>
 
             {/* Weaknesses */}
-            <div style={{ paddingLeft: '20px' }}>
+            <div>
               <h2 className="text-base font-bold mb-4">
                 Slabé stránky:
               </h2>
@@ -170,20 +168,18 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
           padding: '15mm',
           backgroundColor: '#ffffff',
           fontFamily: "'Readex Pro', sans-serif",
-          border: '2px solid #000000',
           ...backgroundBackStyle,
         }}
       >
         <div className="relative z-10 h-full flex flex-col" style={{ height: 'calc(297mm - 30mm)' }}>
           {/* Top Third - Personality Traits */}
-          <div className="flex flex-col justify-center" style={{ minHeight: '33.33%', borderBottom: '2px solid #000000', paddingBottom: '20px' }}>
+          <div className="flex flex-col justify-center" style={{ minHeight: '33.33%', borderBottom: '1px solid #d0d0d0', paddingBottom: '20px' }}>
             <h2 className="text-xl font-bold text-center mb-8">
               Predikce osobnostních rysů
             </h2>
             <div className="grid grid-cols-3 gap-6">
               {personalityTraits.slice(0, 3).map((trait, idx) => (
                 <div key={idx} className="text-center">
-                  <img src={personalityIcon} alt="" className="w-8 h-8 mx-auto mb-3" />
                   <p className="text-sm font-semibold mb-2">
                     {trait.title}
                   </p>
@@ -196,7 +192,7 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
           </div>
 
           {/* Middle Third - Collaboration Section */}
-          <div className="flex flex-col justify-center" style={{ minHeight: '33.33%', borderBottom: '2px solid #000000', paddingTop: '20px', paddingBottom: '20px' }}>
+          <div className="flex flex-col justify-center" style={{ minHeight: '33.33%', borderBottom: '1px solid #d0d0d0', paddingTop: '20px', paddingBottom: '20px' }}>
             <h2 className="text-base font-bold text-center mb-4">
               Pro zlepšení spolupráce ve stejném týmu
             </h2>

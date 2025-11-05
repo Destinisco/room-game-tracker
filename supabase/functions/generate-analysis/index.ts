@@ -176,13 +176,6 @@ Formát pro strengths, weaknesses a personalityTraits:
 
 ${selectedLanguage.instruction} Použij informace o zaškrtnutém chování a jejich psychologických významech.`;
 
-    // Get formatted date for game code
-    const now = new Date();
-    const day = String(now.getDate()).padStart(2, '0');
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const year = String(now.getFullYear()).slice(-2);
-    const gameCode = `58-${day}${month}${year}`;
-
     // Build user prompt with behavior meanings
     const userPrompt = `Analyzuj tohoto hráče:
 
@@ -259,7 +252,7 @@ Vrať JSON s klíči: role, strengths (array[3] objektů s title+description), w
     // Add dynamic data to AI output
     aiOutputJson.code = player.session.code || "N/A";
     aiOutputJson.color = player.band_color || "Neurčeno";
-    aiOutputJson.gameCode = gameCode;
+    aiOutputJson.gameCode = player.session.code || "N/A"; // Use session code as game code
 
     // Validate required keys
     const requiredKeys = ["role", "strengths", "weaknesses", "trust", "personalityTraits", "collaboration"];
