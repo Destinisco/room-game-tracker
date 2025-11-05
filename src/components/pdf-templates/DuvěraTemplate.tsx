@@ -54,54 +54,58 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
           pageBreakAfter: 'always',
           backgroundColor: '#ffffff',
           fontFamily: "'Readex Pro', sans-serif",
+          border: '2px solid #000000',
           ...backgroundFrontStyle,
         }}
       >
-        <div className="relative z-10 h-full flex flex-col">
-          {/* Header */}
-          <div className="text-center mb-4">
-            <h1 className="text-2xl font-semibold mb-1">
-              Destinisco Nexus™
-            </h1>
-            <p className="text-sm text-gray-700">
-              Psychoanalýza hráče: {color}
+        <div className="relative z-10 h-full flex flex-col" style={{ height: 'calc(297mm - 30mm)' }}>
+          {/* Top Third - Header + Logo + Role */}
+          <div className="flex flex-col" style={{ minHeight: '33.33%', paddingBottom: '20px', borderBottom: '2px solid #000000' }}>
+            {/* Header */}
+            <div className="text-center mb-4">
+              <h1 className="text-2xl font-semibold mb-1">
+                Destinisco Nexus™
+              </h1>
+              <p className="text-sm text-gray-700">
+                Psychoanalýza hráče: {color}
+              </p>
+            </div>
+
+            {/* Centered Icon/Logo Space */}
+            <div className="flex justify-center mb-4">
+              <div className="w-24 h-24 flex items-center justify-center">
+                <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="40" cy="40" r="35" fill="none" stroke="#1a1a1a" strokeWidth="2"/>
+                  <path d="M40 15 L40 65 M20 40 L60 40" stroke="#1a1a1a" strokeWidth="2"/>
+                </svg>
+              </div>
+            </div>
+
+            {/* Role Badge - flexible height */}
+            {role && (
+              <div className="mb-4 flex justify-center">
+                <div className="bg-black text-white text-center py-2 px-8 inline-block">
+                  <p className="text-xs uppercase mb-1">
+                    Vaše role:
+                  </p>
+                  <p className="text-lg font-bold">
+                    {role}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Disclaimer */}
+            <p className="text-xs text-center text-gray-600 leading-relaxed px-8">
+              Herní psychoanalýza byla automaticky vygenerována dle nasbíraných herních dat z únikové hry Důvěra. 
+              Kód hry: {gameCode}
             </p>
           </div>
 
-          {/* Centered Icon/Logo Space */}
-          <div className="flex justify-center mb-4">
-            <div className="w-24 h-24 flex items-center justify-center">
-              <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="40" cy="40" r="35" fill="none" stroke="#1a1a1a" strokeWidth="2"/>
-                <path d="M40 15 L40 65 M20 40 L60 40" stroke="#1a1a1a" strokeWidth="2"/>
-              </svg>
-            </div>
-          </div>
-
-          {/* Role Badge - flexible height */}
-          {role && (
-            <div className="mb-4 flex justify-center">
-              <div className="bg-black text-white text-center py-2 px-8 inline-block">
-                <p className="text-xs uppercase mb-1">
-                  Vaše role:
-                </p>
-                <p className="text-lg font-bold">
-                  {role}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Disclaimer */}
-          <p className="text-xs text-center text-gray-600 mb-6 leading-relaxed px-8">
-            Herní psychoanalýza byla automaticky vygenerována dle nasbíraných herních dat z únikové hry Důvěra. 
-            Kód hry: {gameCode}
-          </p>
-
-          {/* Strengths & Weaknesses - 2 columns */}
-          <div className="grid grid-cols-2 gap-8 mb-6 flex-1">
+          {/* Middle Third - Strengths & Weaknesses */}
+          <div className="grid grid-cols-2 gap-0" style={{ minHeight: '33.33%', borderBottom: '2px solid #000000', paddingTop: '20px', paddingBottom: '20px' }}>
             {/* Strengths */}
-            <div>
+            <div style={{ borderRight: '2px solid #000000', paddingRight: '20px' }}>
               <h2 className="text-base font-bold mb-4">
                 Silné stránky:
               </h2>
@@ -123,7 +127,7 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
             </div>
 
             {/* Weaknesses */}
-            <div>
+            <div style={{ paddingLeft: '20px' }}>
               <h2 className="text-base font-bold mb-4">
                 Slabé stránky:
               </h2>
@@ -145,8 +149,8 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
             </div>
           </div>
 
-          {/* Trust Section */}
-          <div className="mt-auto border-t border-gray-300 pt-4">
+          {/* Bottom Third - Trust Section */}
+          <div className="flex flex-col justify-center" style={{ minHeight: '33.33%', paddingTop: '20px' }}>
             <h2 className="text-base font-bold text-center mb-3">
               Důvěra (v sebe, ostatní a příběh)
             </h2>
@@ -166,12 +170,13 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
           padding: '15mm',
           backgroundColor: '#ffffff',
           fontFamily: "'Readex Pro', sans-serif",
+          border: '2px solid #000000',
           ...backgroundBackStyle,
         }}
       >
-        <div className="relative z-10 h-full flex flex-col">
-          {/* Personality Traits - 3 columns with thirds layout */}
-          <div className="mb-8 pb-6">
+        <div className="relative z-10 h-full flex flex-col" style={{ height: 'calc(297mm - 30mm)' }}>
+          {/* Top Third - Personality Traits */}
+          <div className="flex flex-col justify-center" style={{ minHeight: '33.33%', borderBottom: '2px solid #000000', paddingBottom: '20px' }}>
             <h2 className="text-xl font-bold text-center mb-8">
               Predikce osobnostních rysů
             </h2>
@@ -190,8 +195,8 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
             </div>
           </div>
 
-          {/* Collaboration Section */}
-          <div className="flex-1 mb-8">
+          {/* Middle Third - Collaboration Section */}
+          <div className="flex flex-col justify-center" style={{ minHeight: '33.33%', borderBottom: '2px solid #000000', paddingTop: '20px', paddingBottom: '20px' }}>
             <h2 className="text-base font-bold text-center mb-4">
               Pro zlepšení spolupráce ve stejném týmu
             </h2>
@@ -203,8 +208,8 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
             </h3>
           </div>
 
-          {/* Footer with Logo */}
-          <div className="mt-auto pt-6 border-t border-gray-300 flex flex-col items-center">
+          {/* Bottom Third - Footer with Logo */}
+          <div className="flex flex-col justify-center items-center" style={{ minHeight: '33.33%', paddingTop: '20px' }}>
             <img src={destiniscoLogo} alt="Destinisco" className="h-12 mb-2" />
             <p className="text-xs text-gray-600">Adaptivní únikové hry</p>
             <p className="text-xs text-gray-600 mt-1">www.destinisco.com</p>
