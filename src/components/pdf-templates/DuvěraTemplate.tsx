@@ -104,7 +104,7 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
           <div className="grid grid-cols-2 gap-8" style={{ minHeight: '33.33%', borderBottom: '1px solid #d0d0d0', paddingTop: '20px', paddingBottom: '20px' }}>
             {/* Strengths */}
             <div>
-              <h2 className="text-base font-bold mb-4">
+              <h2 className="text-lg font-bold mb-4">
                 Silné stránky:
               </h2>
               <div className="space-y-4">
@@ -112,7 +112,7 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
                   <div key={idx} className="flex gap-2 border border-gray-300 p-3 rounded">
                     <img src={strengthIcon} alt="" className="w-5 h-5 flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-xs font-semibold mb-1">
+                      <p className="text-sm font-semibold mb-1">
                         {item.title}
                       </p>
                       <p className="text-xs text-gray-700 leading-snug">
@@ -126,7 +126,7 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
 
             {/* Weaknesses */}
             <div>
-              <h2 className="text-base font-bold mb-4">
+              <h2 className="text-lg font-bold mb-4">
                 Slabé stránky:
               </h2>
               <div className="space-y-4">
@@ -134,7 +134,7 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
                   <div key={idx} className="flex gap-2 border border-gray-300 p-3 rounded">
                     <img src={weaknessIcon} alt="" className="w-5 h-5 flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-xs font-semibold mb-1">
+                      <p className="text-sm font-semibold mb-1">
                         {item.title}
                       </p>
                       <p className="text-xs text-gray-700 leading-snug">
@@ -148,11 +148,11 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
           </div>
 
           {/* Bottom Third - Trust Section */}
-          <div className="flex flex-col justify-center" style={{ minHeight: '33.33%', paddingTop: '20px' }}>
-            <h2 className="text-base font-bold text-center mb-3">
-              Důvěra (v sebe, ostatní a příběh)
+          <div className="flex flex-col justify-center items-center" style={{ minHeight: '33.33%', paddingTop: '20px' }}>
+            <h2 className="text-lg font-bold text-center mb-4">
+              Důvěra v sebe, ostatní a příběh
             </h2>
-            <p className="text-xs text-gray-700 leading-relaxed text-justify">
+            <p className="text-xs text-gray-700 leading-relaxed text-justify max-w-[85%]">
               {trust}
             </p>
           </div>
@@ -192,16 +192,18 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
           </div>
 
           {/* Middle Third - Collaboration Section */}
-          <div className="flex flex-col justify-center" style={{ minHeight: '33.33%', borderBottom: '1px solid #d0d0d0', paddingTop: '20px', paddingBottom: '20px' }}>
+          <div className="flex flex-col justify-center items-center" style={{ minHeight: '33.33%', borderBottom: '1px solid #d0d0d0', paddingTop: '20px', paddingBottom: '20px' }}>
             <h2 className="text-base font-bold text-center mb-4">
               Pro zlepšení spolupráce ve stejném týmu
             </h2>
-            <p className="text-xs text-gray-700 leading-relaxed text-justify mb-6">
+            <p className="text-xs text-gray-700 leading-relaxed text-justify mb-6 max-w-[75%]">
               {collaboration}
             </p>
-            <h3 className="text-sm font-bold text-center mb-2">
-              Opakované hraní stejné Destinisco únikové hry ve stejném složení se doporučuje minimálně 6 měsíců od poslední hry
-            </h3>
+            <div className="max-w-[70%]">
+              <h3 className="text-sm font-bold text-center mb-2">
+                Opakované hraní stejné Destinisco únikové hry ve stejném složení se doporučuje minimálně 6 měsíců od poslední hry
+              </h3>
+            </div>
           </div>
 
           {/* Bottom Third - Footer with Logo */}

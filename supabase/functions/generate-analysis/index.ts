@@ -166,11 +166,11 @@ Vždy vrať validní JSON s následujícími klíči:
 - weaknesses: Pole 3 objektů s klíči "title" a "description" pro oblasti k rozvoji
 - trust: Dlouhý text (100-150 slov) o důvěře hráče v sebe, ostatní a příběh
 - personalityTraits: Pole 3 objektů s klíči "title" a "description" pro klíčové osobnostní rysy
-- collaboration: Dlouhý text (100-150 slov) s doporučeními pro budoucí spolupráci v týmu
+- collaboration: Krátký text (50-70 slov) s doporučeními pro budoucí spolupráci v týmu
 
 Formát pro strengths, weaknesses a personalityTraits:
 [
-  { "title": "Název vlastnosti", "description": "Podrobný popis (2-3 věty)" },
+  { "title": "Název vlastnosti", "description": "Velmi stručný popis (max 2-3 řádky, 30-40 slov)" },
   ...
 ]
 
@@ -187,7 +187,7 @@ ${JSON.stringify(behaviorLexicon, null, 2)}
 Zaškrtnuté chování s významy:
 ${JSON.stringify(behaviorContext, null, 2)}
 
-Vrať JSON s klíči: role, strengths (array[3] objektů s title+description), weaknesses (array[3] objektů s title+description), trust (dlouhý text), personalityTraits (array[3] objektů s title+description), collaboration (dlouhý text).`;
+Vrať JSON s klíči: role, strengths (array[3] objektů s title+description - description max 2-3 řádky), weaknesses (array[3] objektů s title+description - description max 2-3 řádky), trust (dlouhý text 100-150 slov), personalityTraits (array[3] objektů s title+description - description max 2-3 řádky), collaboration (krátký text 50-70 slov).`;
 
     console.log("Volám Lovable AI...");
 
