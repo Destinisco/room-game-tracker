@@ -117,13 +117,13 @@ export const AnalysisTemplateTab = ({ roomTypeId, pdfTemplateComponent }: Analys
 
       toast({
         title: "Nahráno",
-        description: `PDF pozadí (${side === 'front' ? 'přední' : 'zadní'} strana) bylo úspěšně nahráno`,
+        description: `Obrázek pozadí (${side === 'front' ? 'přední' : 'zadní'} strana) bylo úspěšně nahráno`,
       });
     } catch (error) {
-      console.error("Error uploading PDF:", error);
+      console.error("Error uploading image:", error);
       toast({
         title: "Chyba",
-        description: "Nepodařilo se nahrát PDF",
+        description: "Nepodařilo se nahrát obrázek",
         variant: "destructive",
       });
     } finally {
@@ -239,59 +239,77 @@ export const AnalysisTemplateTab = ({ roomTypeId, pdfTemplateComponent }: Analys
           </div>
 
           <div>
-            <Label htmlFor="background-front">PDF pozadí – přední strana</Label>
+            <Label htmlFor="background-front">Obrázek pozadí – přední strana</Label>
             <p className="text-xs text-muted-foreground mb-2">
-              Nahrajte PDF soubor pro stranu 1 (max 10 MB)
+              Nahrajte JPG nebo PNG obrázek pro přední stranu (max 5 MB)
             </p>
-            <div className="flex gap-2 items-center">
+            <div className="flex gap-3 items-start">
               <Input
                 id="background-front"
                 type="file"
-                accept="application/pdf"
+                accept="image/jpeg,image/png,image/jpg"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) handleFileUpload(file, 'front');
                 }}
                 disabled={uploadingFront}
+                className="flex-1"
               />
-              {formData.backgroundFrontUrl && (
-                <a
-                  href={formData.backgroundFrontUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-primary hover:underline"
-                >
-                  Zobrazit
-                </a>
+              {formData.backgroundFrontUrl ? (
+                <div className="flex gap-2 items-center">
+                  <a
+                    href={formData.backgroundFrontUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block"
+                  >
+                    <img
+                      src={formData.backgroundFrontUrl}
+                      alt="Náhled pozadí přední strany"
+                      className="w-[150px] h-[150px] object-cover rounded border border-border hover:opacity-80 transition-opacity"
+                    />
+                  </a>
+                </div>
+              ) : (
+                <div className="text-xs text-muted-foreground w-[150px]">Soubor nevybrán</div>
               )}
             </div>
           </div>
 
           <div>
-            <Label htmlFor="background-back">PDF pozadí – zadní strana</Label>
+            <Label htmlFor="background-back">Obrázek pozadí – zadní strana</Label>
             <p className="text-xs text-muted-foreground mb-2">
-              Nahrajte PDF soubor pro stranu 2 (max 10 MB)
+              Nahrajte JPG nebo PNG obrázek pro zadní stranu (max 5 MB)
             </p>
-            <div className="flex gap-2 items-center">
+            <div className="flex gap-3 items-start">
               <Input
                 id="background-back"
                 type="file"
-                accept="application/pdf"
+                accept="image/jpeg,image/png,image/jpg"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) handleFileUpload(file, 'back');
                 }}
                 disabled={uploadingBack}
+                className="flex-1"
               />
-              {formData.backgroundBackUrl && (
-                <a
-                  href={formData.backgroundBackUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-primary hover:underline"
-                >
-                  Zobrazit
-                </a>
+              {formData.backgroundBackUrl ? (
+                <div className="flex gap-2 items-center">
+                  <a
+                    href={formData.backgroundBackUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block"
+                  >
+                    <img
+                      src={formData.backgroundBackUrl}
+                      alt="Náhled pozadí zadní strany"
+                      className="w-[150px] h-[150px] object-cover rounded border border-border hover:opacity-80 transition-opacity"
+                    />
+                  </a>
+                </div>
+              ) : (
+                <div className="text-xs text-muted-foreground w-[150px]">Soubor nevybrán</div>
               )}
             </div>
           </div>
