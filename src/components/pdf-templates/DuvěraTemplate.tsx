@@ -1,8 +1,4 @@
 import { PdfTemplateProps } from "./types";
-import strengthIcon from '@/assets/pdf-icons/strength-icon.svg';
-import weaknessIcon from '@/assets/pdf-icons/weakness-icon.svg';
-import personalityIcon from '@/assets/pdf-icons/personality-icon.svg';
-import destiniscoLogo from '@/assets/pdf-icons/destinisco-logo.svg';
 
 export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps) => {
   // Parse data with fallbacks for old format
@@ -58,67 +54,31 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
         }}
       >
         <div className="relative z-10 h-full flex flex-col" style={{ height: 'calc(297mm - 30mm)' }}>
-          {/* Top Third - Header + Logo + Role */}
-          <div className="flex flex-col" style={{ minHeight: '33.33%', paddingBottom: '20px', borderBottom: '1px solid #d0d0d0' }}>
-            {/* Header */}
-            <div className="text-center mb-4">
-              <h1 className="text-2xl font-semibold mb-1">
-                Destinisco Nexus™
-              </h1>
-              <p className="text-sm text-gray-700">
-                Psychoanalýza hráče: {color}
-              </p>
+          {/* Dynamic data positioned absolutely for background graphics */}
+          <div style={{ position: 'absolute', top: '25mm', left: '50%', transform: 'translateX(-50%)', textAlign: 'center' }}>
+            <p className="text-sm font-semibold">{color}</p>
+          </div>
+          
+          {role && (
+            <div style={{ position: 'absolute', top: '60mm', left: '50%', transform: 'translateX(-50%)', textAlign: 'center' }}>
+              <p className="text-lg font-bold">{role}</p>
             </div>
-
-            {/* Centered Icon/Logo Space */}
-            <div className="flex justify-center mb-4">
-              <div className="w-24 h-24 flex items-center justify-center">
-                <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="40" cy="40" r="35" fill="none" stroke="#1a1a1a" strokeWidth="2"/>
-                  <path d="M40 15 L40 65 M20 40 L60 40" stroke="#1a1a1a" strokeWidth="2"/>
-                </svg>
-              </div>
-            </div>
-
-            {/* Role Badge - flexible height */}
-            {role && (
-              <div className="mb-4 flex justify-center">
-                <div className="bg-black text-white text-center py-2 px-8 inline-block rounded-lg">
-                  <p className="text-xs uppercase mb-1">
-                    Vaše role:
-                  </p>
-                  <p className="text-lg font-bold">
-                    {role}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Disclaimer */}
-            <p className="text-[10px] text-center text-gray-600 leading-tight px-8">
-              Herní psychoanalýza byla automaticky vygenerována dle nasbíraných herních dat z únikové hry Důvěra. Kód hry: {gameCode}
-            </p>
+          )}
+          
+          <div style={{ position: 'absolute', top: '85mm', left: '50%', transform: 'translateX(-50%)', textAlign: 'center' }}>
+            <p className="text-xs">{gameCode}</p>
           </div>
 
-          {/* Middle Third - Strengths & Weaknesses */}
-          <div className="grid grid-cols-2 gap-8" style={{ minHeight: '33.33%', borderBottom: '1px solid #d0d0d0', paddingTop: '20px', paddingBottom: '20px' }}>
+          {/* Strengths & Weaknesses Section */}
+          <div className="grid grid-cols-2 gap-8" style={{ marginTop: '110mm', paddingBottom: '20px' }}>
             {/* Strengths */}
             <div>
-              <h2 className="text-lg font-bold mb-4">
-                Silné stránky:
-              </h2>
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {strengths.slice(0, 3).map((item, idx) => (
-                  <div key={idx} className="flex gap-2 border border-gray-300 p-3 rounded">
-                    <img src={strengthIcon} alt="" className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-semibold mb-1">
-                        {item.title}
-                      </p>
-                      <p className="text-xs text-gray-700 leading-snug">
-                        {item.description}
-                      </p>
-                    </div>
+                  <div key={idx}>
+                    <p className="text-xs text-gray-700 leading-snug">
+                      {item.description}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -126,32 +86,20 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
 
             {/* Weaknesses */}
             <div>
-              <h2 className="text-lg font-bold mb-4">
-                Slabé stránky:
-              </h2>
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {weaknesses.slice(0, 3).map((item, idx) => (
-                  <div key={idx} className="flex gap-2 border border-gray-300 p-3 rounded">
-                    <img src={weaknessIcon} alt="" className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-semibold mb-1">
-                        {item.title}
-                      </p>
-                      <p className="text-xs text-gray-700 leading-snug">
-                        {item.description}
-                      </p>
-                    </div>
+                  <div key={idx}>
+                    <p className="text-xs text-gray-700 leading-snug">
+                      {item.description}
+                    </p>
                   </div>
                 ))}
               </div>
             </div>
           </div>
 
-          {/* Bottom Third - Trust Section */}
-          <div className="flex flex-col justify-center items-center" style={{ minHeight: '33.33%', paddingTop: '20px' }}>
-            <h2 className="text-lg font-bold text-center mb-4">
-              Důvěra v sebe, ostatní a příběh
-            </h2>
+          {/* Trust Section */}
+          <div className="flex flex-col justify-center items-center" style={{ marginTop: '20px' }}>
             <p className="text-xs text-gray-700 leading-relaxed text-justify max-w-[85%]">
               {trust}
             </p>
@@ -172,14 +120,11 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
         }}
       >
         <div className="relative z-10 h-full flex flex-col" style={{ height: 'calc(297mm - 30mm)' }}>
-          {/* Top Third - Personality Traits */}
-          <div className="flex flex-col justify-center" style={{ minHeight: '33.33%', borderBottom: '1px solid #d0d0d0', paddingBottom: '20px' }}>
-            <h2 className="text-xl font-bold text-center mb-8">
-              Predikce osobnostních rysů
-            </h2>
+          {/* Personality Traits Section */}
+          <div className="flex flex-col justify-center" style={{ minHeight: '33.33%', paddingTop: '50mm' }}>
             <div className="grid grid-cols-3 gap-6">
               {personalityTraits.slice(0, 3).map((trait, idx) => (
-                <div key={idx} className="text-center">
+                <div key={idx} className="text-center flex flex-col justify-center items-center">
                   <p className="text-sm font-semibold mb-2">
                     {trait.title}
                   </p>
@@ -191,26 +136,11 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
             </div>
           </div>
 
-          {/* Middle Third - Collaboration Section */}
-          <div className="flex flex-col justify-center items-center" style={{ minHeight: '33.33%', borderBottom: '1px solid #d0d0d0', paddingTop: '20px', paddingBottom: '20px' }}>
-            <h2 className="text-base font-bold text-center mb-4">
-              Pro zlepšení spolupráce ve stejném týmu
-            </h2>
-            <p className="text-xs text-gray-700 leading-relaxed text-justify mb-6 max-w-[75%]">
+          {/* Collaboration Section */}
+          <div className="flex flex-col justify-center items-center" style={{ minHeight: '33.33%', paddingTop: '20px' }}>
+            <p className="text-xs text-gray-700 leading-relaxed text-justify max-w-[75%]">
               {collaboration}
             </p>
-            <div className="max-w-[70%]">
-              <h3 className="text-sm font-bold text-center mb-2">
-                Opakované hraní stejné Destinisco únikové hry ve stejném složení se doporučuje minimálně 6 měsíců od poslední hry
-              </h3>
-            </div>
-          </div>
-
-          {/* Bottom Third - Footer with Logo */}
-          <div className="flex flex-col justify-center items-center" style={{ minHeight: '33.33%', paddingTop: '20px' }}>
-            <img src={destiniscoLogo} alt="Destinisco" className="h-12 mb-2" />
-            <p className="text-xs text-gray-600">Adaptivní únikové hry</p>
-            <p className="text-xs text-gray-600 mt-1">www.destinisco.com</p>
           </div>
         </div>
       </div>
