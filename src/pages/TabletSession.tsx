@@ -431,26 +431,8 @@ const PlayerIntakeForm = ({
                 <option value="">Vyberte pohlaví</option>
                 <option value="Muž">Muž</option>
                 <option value="Žena">Žena</option>
-              </select>
+            </select>
             </div>
-
-            {roles.length > 0 && (
-              <div className="space-y-2">
-                <label className="text-lg font-medium">Role v týmu</label>
-                <select
-                  value={formData.band_color}
-                  onChange={(e) => setFormData({ ...formData, band_color: e.target.value })}
-                  className="w-full p-4 text-lg border rounded-md"
-                >
-                  <option value="">Vyberte roli</option>
-                  {roles.map((role) => (
-                    <option key={role.id} value={role.czech_name || role.name}>
-                      {role.czech_name || role.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
 
             <div className="flex items-start space-x-3 p-4 bg-muted rounded-md">
               <input
