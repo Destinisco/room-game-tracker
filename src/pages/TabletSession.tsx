@@ -22,6 +22,15 @@ interface Player {
 
 interface Room {
   band_colors: string[] | null;
+  room_type_id: string | null;
+}
+
+interface RoleTemplate {
+  id: string;
+  name: string;
+  czech_name: string | null;
+  english_name: string | null;
+  description: string | null;
 }
 
 const TabletSession = () => {
@@ -30,6 +39,7 @@ const TabletSession = () => {
   const { toast } = useToast();
   const [players, setPlayers] = useState<Player[]>([]);
   const [room, setRoom] = useState<Room | null>(null);
+  const [roles, setRoles] = useState<RoleTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
 
@@ -46,12 +56,24 @@ const TabletSession = () => {
 
         const { data: roomData, error: roomError } = await supabase
           .from("rooms")
-          .select("band_colors")
+          .select("band_colors, room_type_id")
           .eq("id", sessionData.room_id)
           .single();
 
         if (roomError) throw roomError;
         setRoom(roomData);
+
+        // Fetch roles if room has room_type_id
+        if (roomData?.room_type_id) {
+          const { data: rolesData, error: rolesError } = await supabase
+            .from("role_templates")
+            .select("*")
+            .eq("room_type_id", roomData.room_type_id)
+            .order("created_at", { ascending: true });
+
+          if (rolesError) throw rolesError;
+          setRoles(rolesData || []);
+        }
 
         const { data: playersData, error: playersError } = await supabase
           .from("players")
@@ -120,6 +142,7 @@ const TabletSession = () => {
           player={player}
           sessionId={id!}
           bandColors={room?.band_colors || []}
+          roles={roles}
           usedColors={usedColors}
           onBack={() => {
             setSelectedPlayerId(null);
@@ -201,12 +224,14 @@ const PlayerIntakeForm = ({
   player,
   sessionId,
   bandColors,
+  roles,
   onBack,
   usedColors,
 }: {
   player: Player;
   sessionId: string;
   bandColors: string[];
+  roles: RoleTemplate[];
   onBack: () => void;
   usedColors: string[];
 }) => {
@@ -408,6 +433,24 @@ const PlayerIntakeForm = ({
                 <option value="Žena">Žena</option>
               </select>
             </div>
+
+            {roles.length > 0 && (
+              <div className="space-y-2">
+                <label className="text-lg font-medium">Role v týmu</label>
+                <select
+                  value={formData.band_color}
+                  onChange={(e) => setFormData({ ...formData, band_color: e.target.value })}
+                  className="w-full p-4 text-lg border rounded-md"
+                >
+                  <option value="">Vyberte roli</option>
+                  {roles.map((role) => (
+                    <option key={role.id} value={role.czech_name || role.name}>
+                      {role.czech_name || role.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div className="flex items-start space-x-3 p-4 bg-muted rounded-md">
               <input

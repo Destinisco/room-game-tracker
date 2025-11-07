@@ -63,7 +63,7 @@ serve(async (req) => {
       .from("player_observations")
       .select(`
         *,
-        primary_role:role_templates(name, description)
+        primary_role:role_templates(name, czech_name, english_name, description)
       `)
       .eq("player_id", playerId)
       .maybeSingle();
@@ -123,6 +123,19 @@ serve(async (req) => {
       };
     }).filter((cat: any) => cat.checkedBehaviors.length > 0);
 
+    // Determine role name based on language
+    let roleName = null;
+    if (observation?.primary_role) {
+      const lang = observation.language || "cs";
+      if (lang === "cs") {
+        roleName = observation.primary_role.czech_name || observation.primary_role.name;
+      } else if (lang === "en") {
+        roleName = observation.primary_role.english_name || observation.primary_role.name;
+      } else {
+        roleName = observation.primary_role.name;
+      }
+    }
+
     // Prepare player data for AI
     const playerData = {
       full_name: player.full_name,
@@ -131,7 +144,7 @@ serve(async (req) => {
       band_color: player.band_color,
       gender: player.gender,
       code: player.session.code,
-      role: observation?.primary_role?.name || null,
+      role: roleName,
       role_description: observation?.primary_role?.description || null,
       notes: observation?.notes || null,
       language: observation?.language || "cs",

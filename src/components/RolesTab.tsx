@@ -11,6 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 interface RoleTemplate {
   id: string;
   name: string;
+  czech_name: string | null;
+  english_name: string | null;
   description: string | null;
 }
 
@@ -51,6 +53,8 @@ export const RolesTab = ({ roomTypeId }: RolesTabProps) => {
       const { error } = await supabase.from("role_templates").insert({
         room_type_id: roomTypeId,
         name: "",
+        czech_name: "",
+        english_name: "",
         description: "",
       });
 
@@ -74,7 +78,7 @@ export const RolesTab = ({ roomTypeId }: RolesTabProps) => {
 
   const handleUpdateRole = async (
     id: string,
-    field: "name" | "description",
+    field: "name" | "czech_name" | "english_name" | "description",
     value: string
   ) => {
     // Optimistic update
@@ -176,19 +180,35 @@ export const RolesTab = ({ roomTypeId }: RolesTabProps) => {
               <CardContent className="pt-6 space-y-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 space-y-4">
-                    <div>
-                      <Label htmlFor={`role-name-${role.id}`}>
-                        Název role *
-                      </Label>
-                      <Input
-                        id={`role-name-${role.id}`}
-                        value={role.name}
-                        onChange={(e) =>
-                          handleUpdateRole(role.id, "name", e.target.value)
-                        }
-                        placeholder="např. Vůdce, Technik, Komunikátor..."
-                        required
-                      />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor={`role-czech-${role.id}`}>
+                          Český název *
+                        </Label>
+                        <Input
+                          id={`role-czech-${role.id}`}
+                          value={role.czech_name || ""}
+                          onChange={(e) =>
+                            handleUpdateRole(role.id, "czech_name", e.target.value)
+                          }
+                          placeholder="např. Vůdce"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor={`role-english-${role.id}`}>
+                          Anglický název *
+                        </Label>
+                        <Input
+                          id={`role-english-${role.id}`}
+                          value={role.english_name || ""}
+                          onChange={(e) =>
+                            handleUpdateRole(role.id, "english_name", e.target.value)
+                          }
+                          placeholder="e.g. Leader"
+                          required
+                        />
+                      </div>
                     </div>
                     <div>
                       <Label htmlFor={`role-desc-${role.id}`}>

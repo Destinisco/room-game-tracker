@@ -114,14 +114,26 @@ export const PlayerObservation = ({ playerId, roomId }: PlayerObservationProps) 
         // Admins can always edit, regardless of consent
         setConsentBlocked(!isAdmin && !playerData.consent);
 
-        const { data: rolesData, error: rolesError } = await supabase
-          .from("role_templates")
-          .select("*")
-          .eq("room_id", roomId)
-          .order("created_at", { ascending: true });
+        // First get room to find room_type_id
+        const { data: roomData, error: roomError } = await supabase
+          .from("rooms")
+          .select("room_type_id")
+          .eq("id", roomId)
+          .single();
 
-        if (rolesError) throw rolesError;
-        setRoles(rolesData || []);
+        if (roomError) throw roomError;
+
+        // Then fetch roles using room_type_id
+        if (roomData?.room_type_id) {
+          const { data: rolesData, error: rolesError } = await supabase
+            .from("role_templates")
+            .select("*")
+            .eq("room_type_id", roomData.room_type_id)
+            .order("created_at", { ascending: true });
+
+          if (rolesError) throw rolesError;
+          setRoles(rolesData || []);
+        }
 
         const { data: categoriesData, error: categoriesError } = await supabase
           .from("behavior_categories")
@@ -178,13 +190,13 @@ export const PlayerObservation = ({ playerId, roomId }: PlayerObservationProps) 
         }
 
         // Load latest analysis template with room_type info
-        const { data: roomData } = await supabase
+        const { data: roomTypeData } = await supabase
           .from("rooms")
           .select("room_type_id")
           .eq("id", roomId)
           .single();
 
-        if (roomData?.room_type_id) {
+        if (roomTypeData?.room_type_id) {
           const { data: templateData } = await supabase
             .from("analysis_templates")
             .select(`
@@ -194,7 +206,7 @@ export const PlayerObservation = ({ playerId, roomId }: PlayerObservationProps) 
                 pdf_template_component
               )
             `)
-            .eq("room_type_id", roomData.room_type_id)
+            .eq("room_type_id", roomTypeData.room_type_id)
             .order("version", { ascending: false })
             .limit(1)
             .maybeSingle();

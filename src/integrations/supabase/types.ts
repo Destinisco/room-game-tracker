@@ -462,7 +462,9 @@ export type Database = {
       role_templates: {
         Row: {
           created_at: string | null
+          czech_name: string | null
           description: string | null
+          english_name: string | null
           id: string
           name: string
           room_id: string | null
@@ -470,7 +472,9 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          czech_name?: string | null
           description?: string | null
+          english_name?: string | null
           id?: string
           name: string
           room_id?: string | null
@@ -478,7 +482,9 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          czech_name?: string | null
           description?: string | null
+          english_name?: string | null
           id?: string
           name?: string
           room_id?: string | null
