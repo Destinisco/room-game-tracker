@@ -29,15 +29,6 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
   const color = analysis.color || player.band_color || "neznámá";
   const gameCode = analysis.gameCode || "N/A";
 
-  // Prepare background styles
-  const backgroundFrontStyle = template.backgroundFrontUrl 
-    ? { backgroundImage: `url(${template.backgroundFrontUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-    : {};
-  
-  const backgroundBackStyle = template.backgroundBackUrl
-    ? { backgroundImage: `url(${template.backgroundBackUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-    : {};
-
   return (
     <div className="pdf-container">
       {/* Front Page */}
@@ -46,14 +37,25 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
         style={{
           width: '210mm',
           height: '297mm',
-          padding: '15mm',
+          padding: '0',
           pageBreakAfter: 'always',
           backgroundColor: '#ffffff',
           fontFamily: "'Readex Pro', sans-serif",
-          ...backgroundFrontStyle,
+          overflow: 'hidden',
         }}
       >
-        <div className="relative z-10 h-full flex flex-col" style={{ height: 'calc(297mm - 30mm)' }}>
+        {/* Background as image */}
+        {template.backgroundFrontUrl && (
+          <img 
+            src={template.backgroundFrontUrl}
+            alt="Background"
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ width: '210mm', height: '297mm' }}
+            crossOrigin="anonymous"
+          />
+        )}
+        
+        <div className="relative z-10 h-full flex flex-col" style={{ height: '297mm', padding: '15mm' }}>
           {/* Dynamic data positioned absolutely for background graphics */}
           <div style={{ position: 'absolute', top: '25mm', left: '50%', transform: 'translateX(-50%)', textAlign: 'center' }}>
             <p className="text-sm font-semibold">{color}</p>
@@ -113,13 +115,24 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
         style={{
           width: '210mm',
           height: '297mm',
-          padding: '15mm',
+          padding: '0',
           backgroundColor: '#ffffff',
           fontFamily: "'Readex Pro', sans-serif",
-          ...backgroundBackStyle,
+          overflow: 'hidden',
         }}
       >
-        <div className="relative z-10 h-full flex flex-col" style={{ height: 'calc(297mm - 30mm)' }}>
+        {/* Background as image */}
+        {template.backgroundBackUrl && (
+          <img 
+            src={template.backgroundBackUrl}
+            alt="Background"
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ width: '210mm', height: '297mm' }}
+            crossOrigin="anonymous"
+          />
+        )}
+        
+        <div className="relative z-10 h-full flex flex-col" style={{ height: '297mm', padding: '15mm' }}>
           {/* Personality Traits Section */}
           <div className="flex flex-col justify-center" style={{ minHeight: '33.33%', paddingTop: '50mm' }}>
             <div className="grid grid-cols-3 gap-6">
@@ -164,11 +177,19 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
           .no-print {
             display: none !important;
           }
+          img {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
         }
         @media screen {
           .pdf-page {
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
             margin-bottom: 20px;
+          }
+          img {
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
           }
         }
       `}</style>
