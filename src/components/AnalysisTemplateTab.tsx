@@ -117,13 +117,13 @@ export const AnalysisTemplateTab = ({ roomTypeId, pdfTemplateComponent }: Analys
 
       toast({
         title: "Nahráno",
-        description: `Obrázek pozadí (${side === 'front' ? 'přední' : 'zadní'} strana) bylo úspěšně nahráno`,
+        description: `PDF pozadí (${side === 'front' ? 'přední' : 'zadní'} strana) bylo úspěšně nahráno`,
       });
     } catch (error) {
       console.error("Error uploading image:", error);
       toast({
         title: "Chyba",
-        description: "Nepodařilo se nahrát obrázek",
+        description: "Nepodařilo se nahrát PDF",
         variant: "destructive",
       });
     } finally {
@@ -241,13 +241,13 @@ export const AnalysisTemplateTab = ({ roomTypeId, pdfTemplateComponent }: Analys
           <div>
             <Label htmlFor="background-front">Obrázek pozadí – přední strana</Label>
             <p className="text-xs text-muted-foreground mb-2">
-              Nahrajte JPG nebo PNG obrázek pro přední stranu (max 5 MB)
+              Nahrajte PDF pro přední stranu (max 5 MB)
             </p>
             <div className="flex gap-3 items-start">
               <Input
                 id="background-front"
                 type="file"
-                accept="image/jpeg,image/png,image/jpg"
+                accept="application/pdf"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) handleFileUpload(file, 'front');
@@ -261,13 +261,17 @@ export const AnalysisTemplateTab = ({ roomTypeId, pdfTemplateComponent }: Analys
                     href={formData.backgroundFrontUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block"
+                    className="block w-[150px] h-[150px] border border-border rounded overflow-hidden hover:opacity-80 transition-opacity"
                   >
-                    <img
-                      src={formData.backgroundFrontUrl}
-                      alt="Náhled pozadí přední strany"
-                      className="w-[150px] h-[150px] object-cover rounded border border-border hover:opacity-80 transition-opacity"
-                    />
+                    <object
+                      data={formData.backgroundFrontUrl}
+                      type="application/pdf"
+                      className="w-full h-full pointer-events-none"
+                    >
+                      <div className="flex items-center justify-center h-full text-xs text-muted-foreground p-2 text-center">
+                        PDF nahrán
+                      </div>
+                    </object>
                   </a>
                 </div>
               ) : (
@@ -279,13 +283,13 @@ export const AnalysisTemplateTab = ({ roomTypeId, pdfTemplateComponent }: Analys
           <div>
             <Label htmlFor="background-back">Obrázek pozadí – zadní strana</Label>
             <p className="text-xs text-muted-foreground mb-2">
-              Nahrajte JPG nebo PNG obrázek pro zadní stranu (max 5 MB)
+              Nahrajte PDF pro zadní stranu (max 5 MB)
             </p>
             <div className="flex gap-3 items-start">
               <Input
                 id="background-back"
                 type="file"
-                accept="image/jpeg,image/png,image/jpg"
+                accept="application/pdf"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) handleFileUpload(file, 'back');
@@ -299,13 +303,17 @@ export const AnalysisTemplateTab = ({ roomTypeId, pdfTemplateComponent }: Analys
                     href={formData.backgroundBackUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block"
+                    className="block w-[150px] h-[150px] border border-border rounded overflow-hidden hover:opacity-80 transition-opacity"
                   >
-                    <img
-                      src={formData.backgroundBackUrl}
-                      alt="Náhled pozadí zadní strany"
-                      className="w-[150px] h-[150px] object-cover rounded border border-border hover:opacity-80 transition-opacity"
-                    />
+                    <object
+                      data={formData.backgroundBackUrl}
+                      type="application/pdf"
+                      className="w-full h-full pointer-events-none"
+                    >
+                      <div className="flex items-center justify-center h-full text-xs text-muted-foreground p-2 text-center">
+                        PDF nahrán
+                      </div>
+                    </object>
                   </a>
                 </div>
               ) : (
