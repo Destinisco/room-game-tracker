@@ -3,8 +3,7 @@ import { Printer, Download } from "lucide-react";
 import { useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { getPdfTemplate } from "@/components/pdf-templates";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
+import { PDFDocument, rgb } from "pdf-lib";
 
 interface PlayerAnalysisPreviewProps {
   playerId: string;
@@ -31,57 +30,133 @@ export const PlayerAnalysisPreview = ({
 
   const TemplateComponent = getPdfTemplate(template.pdfTemplateComponent);
 
-  const generatePDF = async (): Promise<jsPDF | null> => {
-    if (!pdfContainerRef.current) return null;
-
+  const generatePDF = async (): Promise<PDFDocument | null> => {
     setGenerating(true);
     try {
-      // Wait for all images to load
-      const images = pdfContainerRef.current.querySelectorAll('img');
-      await Promise.all(
-        Array.from(images).map(img => {
-          if (img.complete) return Promise.resolve();
-          return new Promise((resolve, reject) => {
-            img.onload = resolve;
-            img.onerror = reject;
-          });
-        })
-      );
+      const pdfDoc = await PDFDocument.create();
 
-      // Get all pages
-      const pages = pdfContainerRef.current.querySelectorAll('.pdf-page');
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-        compress: false,
-      });
+      // Load background PDFs if available
+      if (template.backgroundFrontUrl) {
+        const frontResponse = await fetch(template.backgroundFrontUrl);
+        const frontBytes = await frontResponse.arrayBuffer();
+        const frontPdf = await PDFDocument.load(frontBytes);
+        const [frontPage] = await pdfDoc.copyPages(frontPdf, [0]);
+        pdfDoc.addPage(frontPage);
 
-      for (let i = 0; i < pages.length; i++) {
-        const page = pages[i] as HTMLElement;
+        // Add text overlays for front page
+        const page = pdfDoc.getPage(0);
+        const { width, height } = page.getSize();
         
-        // Capture at high resolution (3x for ~300 DPI)
-        const canvas = await html2canvas(page, {
-          scale: 3,
-          useCORS: true,
-          allowTaint: false,
-          backgroundColor: '#ffffff',
-          logging: false,
-          windowWidth: page.scrollWidth,
-          windowHeight: page.scrollHeight,
+        // Convert mm to points (1mm = 2.83465 points)
+        const mmToPoints = (mm: number) => mm * 2.83465;
+        
+        // Add color (25mm from top, centered)
+        const color = analysis.color || player?.band_color || "neznámá";
+        page.drawText(color, {
+          x: width / 2 - (color.length * 3),
+          y: height - mmToPoints(25),
+          size: 10,
+          color: rgb(0, 0, 0),
         });
 
-        const imgData = canvas.toDataURL('image/jpeg', 1.0);
-        
-        if (i > 0) {
-          pdf.addPage();
-        }
-        
-        // A4 dimensions: 210mm x 297mm
-        pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
+        // Add role (60mm from top, centered)
+        const role = analysis.role || "Neznámá role";
+        page.drawText(role, {
+          x: width / 2 - (role.length * 4),
+          y: height - mmToPoints(60),
+          size: 14,
+          color: rgb(0, 0, 0),
+        });
+
+        // Add game code (85mm from top, centered)
+        const gameCode = analysis.gameCode || "N/A";
+        page.drawText(gameCode, {
+          x: width / 2 - (gameCode.length * 2),
+          y: height - mmToPoints(85),
+          size: 8,
+          color: rgb(0, 0, 0),
+        });
+
+        // Add strengths (left column, starting at 110mm)
+        const strengths = analysis.strengths || [];
+        let yPos = height - mmToPoints(110);
+        strengths.slice(0, 3).forEach((item: any, idx: number) => {
+          const text = item.description || "";
+          page.drawText(text, {
+            x: mmToPoints(20),
+            y: yPos,
+            size: 8,
+            color: rgb(0.3, 0.3, 0.3),
+            maxWidth: mmToPoints(80),
+          });
+          yPos -= mmToPoints(15);
+        });
+
+        // Add weaknesses (right column, starting at 110mm)
+        const weaknesses = analysis.weaknesses || [];
+        yPos = height - mmToPoints(110);
+        weaknesses.slice(0, 3).forEach((item: any, idx: number) => {
+          const text = item.description || "";
+          page.drawText(text, {
+            x: mmToPoints(115),
+            y: yPos,
+            size: 8,
+            color: rgb(0.3, 0.3, 0.3),
+            maxWidth: mmToPoints(80),
+          });
+          yPos -= mmToPoints(15);
+        });
+
+        // Add trust section
+        const trust = analysis.trust || "";
+        page.drawText(trust, {
+          x: width / 2 - mmToPoints(75),
+          y: height - mmToPoints(180),
+          size: 8,
+          color: rgb(0.3, 0.3, 0.3),
+          maxWidth: mmToPoints(150),
+        });
       }
 
-      return pdf;
+      // Load back page if available
+      if (template.backgroundBackUrl) {
+        const backResponse = await fetch(template.backgroundBackUrl);
+        const backBytes = await backResponse.arrayBuffer();
+        const backPdf = await PDFDocument.load(backBytes);
+        const [backPage] = await pdfDoc.copyPages(backPdf, [0]);
+        pdfDoc.addPage(backPage);
+
+        // Add text overlays for back page
+        const page = pdfDoc.getPage(1);
+        const { width, height } = page.getSize();
+        const mmToPoints = (mm: number) => mm * 2.83465;
+
+        // Add personality traits (3 columns, starting at 50mm)
+        const personalityTraits = analysis.personalityTraits || [];
+        const colWidth = width / 3;
+        personalityTraits.slice(0, 3).forEach((trait: any, idx: number) => {
+          const text = trait.description || "";
+          page.drawText(text, {
+            x: colWidth * idx + mmToPoints(10),
+            y: height - mmToPoints(60),
+            size: 8,
+            color: rgb(0.3, 0.3, 0.3),
+            maxWidth: colWidth - mmToPoints(20),
+          });
+        });
+
+        // Add collaboration section
+        const collaboration = analysis.collaboration || "";
+        page.drawText(collaboration, {
+          x: width / 2 - mmToPoints(65),
+          y: height - mmToPoints(120),
+          size: 8,
+          color: rgb(0.3, 0.3, 0.3),
+          maxWidth: mmToPoints(130),
+        });
+      }
+
+      return pdfDoc;
     } catch (error) {
       console.error('Error generating PDF:', error);
       toast({
@@ -101,12 +176,22 @@ export const PlayerAnalysisPreview = ({
       description: "Vytváření PDF souboru...",
     });
 
-    const pdf = await generatePDF();
-    if (pdf) {
+    const pdfDoc = await generatePDF();
+    if (pdfDoc) {
+      const pdfBytes = await pdfDoc.save();
+      const blob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      
       const gameCode = analysis.gameCode || 'session';
       const playerCode = analysis.code || player?.band_color || 'player';
       const filename = `analyza_${gameCode}_${playerCode}.pdf`;
-      pdf.save(filename);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.click();
+      
+      URL.revokeObjectURL(url);
       
       toast({
         title: "Hotovo",
@@ -121,18 +206,32 @@ export const PlayerAnalysisPreview = ({
       description: "Generování PDF pro tisk...",
     });
 
-    const pdf = await generatePDF();
-    if (pdf) {
-      // Open PDF in new tab for printing
-      const pdfBlob = pdf.output('blob');
-      const pdfUrl = URL.createObjectURL(pdfBlob);
-      const printWindow = window.open(pdfUrl);
+    const pdfDoc = await generatePDF();
+    if (pdfDoc) {
+      const pdfBytes = await pdfDoc.save();
+      const blob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
       
-      if (printWindow) {
-        printWindow.addEventListener('load', () => {
-          printWindow.print();
-        });
-      }
+      // Use data URL instead of blob URL to avoid Chrome blocking
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        const printWindow = window.open('', '_blank');
+        
+        if (printWindow) {
+          printWindow.document.write(`
+            <html>
+              <head>
+                <title>Tisk analýzy</title>
+              </head>
+              <body style="margin: 0;">
+                <iframe src="${dataUrl}" style="border: none; width: 100%; height: 100vh;" onload="this.contentWindow.print()"></iframe>
+              </body>
+            </html>
+          `);
+          printWindow.document.close();
+        }
+      };
+      reader.readAsDataURL(blob);
       
       toast({
         title: "Připraveno k tisku",

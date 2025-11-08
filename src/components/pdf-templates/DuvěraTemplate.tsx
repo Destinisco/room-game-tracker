@@ -44,15 +44,35 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
           overflow: 'hidden',
         }}
       >
-        {/* Background as image */}
+        {/* Background - support both PDF and images */}
         {template.backgroundFrontUrl && (
-          <img 
-            src={template.backgroundFrontUrl}
-            alt="Background"
-            className="absolute inset-0 w-full h-full object-cover"
-            style={{ width: '210mm', height: '297mm' }}
-            crossOrigin="anonymous"
-          />
+          template.backgroundFrontUrl.toLowerCase().endsWith('.pdf') ? (
+            <object 
+              type="application/pdf" 
+              data={template.backgroundFrontUrl}
+              className="absolute inset-0 pointer-events-none"
+              style={{ width: '210mm', height: '297mm' }}
+            >
+              <embed 
+                src={template.backgroundFrontUrl}
+                type="application/pdf"
+                style={{ width: '210mm', height: '297mm' }}
+              />
+            </object>
+          ) : (
+            <img 
+              src={template.backgroundFrontUrl}
+              alt="Background"
+              className="absolute inset-0 w-full h-full pointer-events-none"
+              style={{ 
+                width: '210mm', 
+                height: '297mm',
+                objectFit: 'fill',
+                imageRendering: '-webkit-optimize-contrast'
+              }}
+              crossOrigin="anonymous"
+            />
+          )
         )}
         
         <div className="relative z-10 h-full flex flex-col" style={{ height: '297mm', padding: '15mm' }}>
@@ -121,15 +141,35 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
           overflow: 'hidden',
         }}
       >
-        {/* Background as image */}
+        {/* Background - support both PDF and images */}
         {template.backgroundBackUrl && (
-          <img 
-            src={template.backgroundBackUrl}
-            alt="Background"
-            className="absolute inset-0 w-full h-full object-cover"
-            style={{ width: '210mm', height: '297mm' }}
-            crossOrigin="anonymous"
-          />
+          template.backgroundBackUrl.toLowerCase().endsWith('.pdf') ? (
+            <object 
+              type="application/pdf" 
+              data={template.backgroundBackUrl}
+              className="absolute inset-0 pointer-events-none"
+              style={{ width: '210mm', height: '297mm' }}
+            >
+              <embed 
+                src={template.backgroundBackUrl}
+                type="application/pdf"
+                style={{ width: '210mm', height: '297mm' }}
+              />
+            </object>
+          ) : (
+            <img 
+              src={template.backgroundBackUrl}
+              alt="Background"
+              className="absolute inset-0 w-full h-full pointer-events-none"
+              style={{ 
+                width: '210mm', 
+                height: '297mm',
+                objectFit: 'fill',
+                imageRendering: '-webkit-optimize-contrast'
+              }}
+              crossOrigin="anonymous"
+            />
+          )
         )}
         
         <div className="relative z-10 h-full flex flex-col" style={{ height: '297mm', padding: '15mm' }}>
