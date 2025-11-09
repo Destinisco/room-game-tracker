@@ -265,8 +265,8 @@ Vrať JSON s klíči: role, strengths (array[3] objektů s title+description - d
                     items: {
                       type: "object",
                       properties: {
-                        title: { type: "string" },
-                        description: { type: "string", description: "Max 2-3 lines, 30-40 words" }
+                        title: { type: "string", description: "Max 30 characters" },
+                        description: { type: "string", description: "Max 260 characters" }
                       },
                       required: ["title", "description"],
                       additionalProperties: false
@@ -279,8 +279,8 @@ Vrať JSON s klíči: role, strengths (array[3] objektů s title+description - d
                     items: {
                       type: "object",
                       properties: {
-                        title: { type: "string" },
-                        description: { type: "string", description: "Max 2-3 lines, 30-40 words" }
+                        title: { type: "string", description: "Max 20 characters for right column" },
+                        description: { type: "string", description: "Max 260 characters" }
                       },
                       required: ["title", "description"],
                       additionalProperties: false
@@ -290,15 +290,15 @@ Vrať JSON s klíči: role, strengths (array[3] objektů s title+description - d
                   },
                   trust: {
                     type: "string",
-                    description: "Long text (100-150 words) about player's trust in themselves, others, and the story"
+                    description: "Long text about player's trust, max 1000 characters"
                   },
                   personalityTraits: {
                     type: "array",
                     items: {
                       type: "object",
                       properties: {
-                        title: { type: "string" },
-                        description: { type: "string", description: "Max 2-3 lines, 30-40 words" }
+                        title: { type: "string", description: "Max 20 characters" },
+                        description: { type: "string", description: "Max 160 characters" }
                       },
                       required: ["title", "description"],
                       additionalProperties: false
@@ -308,7 +308,7 @@ Vrať JSON s klíči: role, strengths (array[3] objektů s title+description - d
                   },
                   collaboration: {
                     type: "string",
-                    description: "Short text (50-70 words) with recommendations for future team collaboration"
+                    description: "Recommendations for team collaboration, max 450 characters"
                   }
                 },
                 required: ["role", "strengths", "weaknesses", "trust", "personalityTraits", "collaboration"],
@@ -355,10 +355,30 @@ Vrať JSON s klíči: role, strengths (array[3] objektů s title+description - d
       throw new Error("AI nevrátilo platný JSON");
     }
 
+    // Validate and truncate AI output to fit exact character limits
+    aiOutputJson.strengths = (aiOutputJson.strengths || []).slice(0, 3).map((s: any) => ({
+      title: (s.title || "").slice(0, 30),
+      description: (s.description || "").slice(0, 260)
+    }));
+
+    aiOutputJson.weaknesses = (aiOutputJson.weaknesses || []).slice(0, 3).map((w: any) => ({
+      title: (w.title || "").slice(0, 20),
+      description: (w.description || "").slice(0, 260)
+    }));
+
+    aiOutputJson.trust = (aiOutputJson.trust || "").slice(0, 1000);
+
+    aiOutputJson.personalityTraits = (aiOutputJson.personalityTraits || []).slice(0, 3).map((t: any) => ({
+      title: (t.title || "").slice(0, 20),
+      description: (t.description || "").slice(0, 160)
+    }));
+
+    aiOutputJson.collaboration = (aiOutputJson.collaboration || "").slice(0, 450);
+
     // Add dynamic data to AI output
     aiOutputJson.code = player.session.code || "N/A";
     aiOutputJson.color = player.band_color || "Neurčeno";
-    aiOutputJson.gameCode = player.session.code || "N/A"; // Use session code as game code
+    aiOutputJson.gameCode = player.session.code || "N/A";
 
     // Validate required keys
     const requiredKeys = ["role", "strengths", "weaknesses", "trust", "personalityTraits", "collaboration"];

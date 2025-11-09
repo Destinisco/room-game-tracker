@@ -30,12 +30,85 @@ export const PlayerAnalysisPreview = ({
 
   const TemplateComponent = getPdfTemplate(template.pdfTemplateComponent);
 
+  // Utility functions
+  const convertY = (yTop: number, pageHeight = 867): number => {
+    return pageHeight - yTop;
+  };
+
+  const wrapText = (
+    text: string,
+    maxWidth: number,
+    font: any,
+    fontSize: number
+  ): string[] => {
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let currentLine = '';
+
+    for (const word of words) {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      const width = font.widthOfTextAtSize(testLine, fontSize);
+      
+      if (width > maxWidth && currentLine) {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
+      }
+    }
+    
+    if (currentLine) lines.push(currentLine);
+    return lines;
+  };
+
+  const fitTextInBox = (
+    text: string,
+    maxWidth: number,
+    maxHeight: number,
+    font: any,
+    fontSize: number,
+    lineHeight: number
+  ): string[] => {
+    const lines = wrapText(text, maxWidth, font, fontSize);
+    const maxLines = Math.floor(maxHeight / lineHeight);
+    
+    if (lines.length <= maxLines) return lines;
+    
+    const truncatedLines = lines.slice(0, maxLines);
+    const lastLine = truncatedLines[maxLines - 1];
+    
+    let shortened = lastLine;
+    while (font.widthOfTextAtSize(shortened + '...', fontSize) > maxWidth) {
+      const words = shortened.split(' ');
+      if (words.length <= 1) break;
+      words.pop();
+      shortened = words.join(' ');
+    }
+    truncatedLines[maxLines - 1] = shortened + '...';
+    
+    return truncatedLines;
+  };
+
   const generatePDF = async (): Promise<PDFDocument | null> => {
     setGenerating(true);
     try {
       const pdfDoc = await PDFDocument.create();
+      const PAGE_HEIGHT = 867;
 
-      // Load background for front page (supports both PDF and PNG/JPG)
+      // Load custom fonts
+      console.log('Loading fonts...');
+      const [readexRegularBytes, khandSemiboldBytes] = await Promise.all([
+        fetch('https://fonts.gstatic.com/s/readexpro/v21/SLXnc0jZ4WUJcClHTtv0t7IaDRsBsWRiJCyX8pg.ttf').then(r => r.arrayBuffer()),
+        fetch('https://fonts.gstatic.com/s/khand/v17/TwMN-IINQlQQ0bL5cFE3ZwaH__-C.ttf').then(r => r.arrayBuffer())
+      ]);
+
+      const fonts = {
+        readexRegular: await pdfDoc.embedFont(readexRegularBytes),
+        khandSemibold: await pdfDoc.embedFont(khandSemiboldBytes)
+      };
+      console.log('Fonts loaded');
+
+      // Load background for front page
       if (template.backgroundFrontUrl) {
         try {
           const frontResponse = await fetch(template.backgroundFrontUrl);
@@ -47,7 +120,6 @@ export const PlayerAnalysisPreview = ({
           const contentType = frontResponse.headers.get('content-type');
           const frontBytes = await frontResponse.arrayBuffer();
           
-          // Handle PDF backgrounds
           if (contentType?.includes('pdf')) {
             const frontPdf = await PDFDocument.load(frontBytes, { 
               ignoreEncryption: true,
@@ -57,7 +129,6 @@ export const PlayerAnalysisPreview = ({
             const [frontPage] = await pdfDoc.copyPages(frontPdf, [0]);
             pdfDoc.addPage(frontPage);
           } 
-          // Handle PNG/JPG backgrounds with high quality
           else if (contentType?.includes('image')) {
             let image;
             
@@ -68,16 +139,12 @@ export const PlayerAnalysisPreview = ({
             }
             
             if (image) {
-              // Create A4 page (595.28 x 841.89 points)
-              const page = pdfDoc.addPage([595.28, 841.89]);
-              const { width, height } = page.getSize();
-              
-              // Draw image at full page size for maximum quality
+              const page = pdfDoc.addPage([595, 867]);
               page.drawImage(image, {
                 x: 0,
                 y: 0,
-                width: width,
-                height: height,
+                width: 595,
+                height: 867,
               });
             }
           } else {
@@ -90,92 +157,164 @@ export const PlayerAnalysisPreview = ({
             return null;
           }
 
-          // Add text overlays for front page
-          const frontPageIndex = pdfDoc.getPages().length - 1;
-          const page = pdfDoc.getPage(frontPageIndex);
-          const { width, height } = page.getSize();
-          
-          // Convert mm to points (1mm = 2.83465 points)
-          const mmToPoints = (mm: number) => mm * 2.83465;
-          
-          // Add color (25mm from top, centered)
-          const color = analysis.color || player?.band_color || "neznámá";
-          page.drawText(color, {
-            x: width / 2 - (color.length * 3),
-            y: height - mmToPoints(25),
-            size: 10,
-            color: rgb(0, 0, 0),
+          // === STRANA 1 - Text overlays ===
+          const page1 = pdfDoc.getPage(pdfDoc.getPages().length - 1);
+
+          // 1) Barva hráče - Rect: x=330, y=120, w=210, h=22
+          const barvaText = analysis.color || player?.band_color || "neznámá";
+          page1.drawText(barvaText, {
+            x: 330,
+            y: convertY(120, PAGE_HEIGHT),
+            size: 12,
+            font: fonts.readexRegular,
+            color: rgb(0, 0, 0)
           });
 
-          // Add role (60mm from top, centered)
-          const role = analysis.role || "Neznámá role";
-          page.drawText(role, {
-            x: width / 2 - (role.length * 4),
-            y: height - mmToPoints(60),
-            size: 14,
-            color: rgb(0, 0, 0),
+          // 2) Role - Rect: x=208, y=285, w=180, h=28 (CENTER)
+          const roleText = (analysis.role || "").slice(0, 30);
+          const roleWidth = fonts.khandSemibold.widthOfTextAtSize(roleText, 24);
+          const roleCenterX = 208 + (180 - roleWidth) / 2;
+          page1.drawText(roleText, {
+            x: roleCenterX,
+            y: convertY(285, PAGE_HEIGHT),
+            size: 24,
+            font: fonts.khandSemibold,
+            color: rgb(0, 0, 0)
           });
 
-          // Add game code (85mm from top, centered)
-          const gameCode = analysis.gameCode || "N/A";
-          page.drawText(gameCode, {
-            x: width / 2 - (gameCode.length * 2),
-            y: height - mmToPoints(85),
+          // 3) Kód hry - Rect: x=420, y=318, w=150, h=16 (RIGHT align)
+          const gameCodeText = (analysis.gameCode || "").slice(0, 15);
+          const gameCodeWidth = fonts.readexRegular.widthOfTextAtSize(gameCodeText, 8);
+          const gameCodeX = 420 + 150 - gameCodeWidth;
+          page1.drawText(gameCodeText, {
+            x: gameCodeX,
+            y: convertY(318, PAGE_HEIGHT),
             size: 8,
-            color: rgb(0, 0, 0),
+            font: fonts.readexRegular,
+            color: rgb(0, 0, 0)
           });
 
-          // Add strengths (left column, starting at 110mm)
-          const strengths = analysis.strengths || [];
-          let yPos = height - mmToPoints(110);
-          strengths.slice(0, 3).forEach((item: any, idx: number) => {
-            const text = item.description || "";
-            page.drawText(text, {
-              x: mmToPoints(20),
-              y: yPos,
-              size: 8,
-              color: rgb(0.3, 0.3, 0.3),
-              maxWidth: mmToPoints(80),
+          // 4) Silné stránky - 3 boxy (levý sloupec)
+          const strengthBoxes = [
+            { x: 110, y: 377, w: 205, h: 56 },
+            { x: 110, y: 452, w: 205, h: 56 },
+            { x: 110, y: 527, w: 205, h: 56 }
+          ];
+
+          const strengths = (analysis.strengths || []).slice(0, 3);
+          strengths.forEach((item: any, idx: number) => {
+            const box = strengthBoxes[idx];
+            const title = (item.title || "").slice(0, 30);
+            const description = item.description || "";
+            
+            page1.drawText(title, {
+              x: box.x,
+              y: convertY(box.y, PAGE_HEIGHT),
+              size: 10,
+              font: fonts.readexRegular,
+              color: rgb(0, 0, 0)
             });
-            yPos -= mmToPoints(15);
-          });
-
-          // Add weaknesses (right column, starting at 110mm)
-          const weaknesses = analysis.weaknesses || [];
-          yPos = height - mmToPoints(110);
-          weaknesses.slice(0, 3).forEach((item: any, idx: number) => {
-            const text = item.description || "";
-            page.drawText(text, {
-              x: mmToPoints(115),
-              y: yPos,
-              size: 8,
-              color: rgb(0.3, 0.3, 0.3),
-              maxWidth: mmToPoints(80),
+            
+            const descLines = fitTextInBox(
+              description,
+              box.w,
+              box.h - 12,
+              fonts.readexRegular,
+              8,
+              10
+            );
+            
+            let yPos = convertY(box.y + 12, PAGE_HEIGHT);
+            descLines.forEach(line => {
+              page1.drawText(line, {
+                x: box.x,
+                y: yPos,
+                size: 8,
+                font: fonts.readexRegular,
+                color: rgb(0.2, 0.2, 0.2)
+              });
+              yPos -= 10;
             });
-            yPos -= mmToPoints(15);
           });
 
-          // Add trust section
-          const trust = analysis.trust || "";
-          page.drawText(trust, {
-            x: width / 2 - mmToPoints(75),
-            y: height - mmToPoints(180),
-            size: 8,
-            color: rgb(0.3, 0.3, 0.3),
-            maxWidth: mmToPoints(150),
+          // 5) Slabé stránky - 3 boxy (pravý sloupec, užší)
+          const weaknessBoxes = [
+            { x: 402, y: 377, w: 132, h: 56 },
+            { x: 402, y: 452, w: 132, h: 56 },
+            { x: 402, y: 527, w: 132, h: 56 }
+          ];
+
+          const weaknesses = (analysis.weaknesses || []).slice(0, 3);
+          weaknesses.forEach((item: any, idx: number) => {
+            const box = weaknessBoxes[idx];
+            const title = (item.title || "").slice(0, 20);
+            const description = item.description || "";
+            
+            page1.drawText(title, {
+              x: box.x,
+              y: convertY(box.y, PAGE_HEIGHT),
+              size: 10,
+              font: fonts.readexRegular,
+              color: rgb(0, 0, 0)
+            });
+            
+            const descLines = fitTextInBox(
+              description,
+              box.w,
+              box.h - 12,
+              fonts.readexRegular,
+              8,
+              10
+            );
+            
+            let yPos = convertY(box.y + 12, PAGE_HEIGHT);
+            descLines.forEach(line => {
+              page1.drawText(line, {
+                x: box.x,
+                y: yPos,
+                size: 8,
+                font: fonts.readexRegular,
+                color: rgb(0.2, 0.2, 0.2)
+              });
+              yPos -= 10;
+            });
           });
+
+          // 6) Dlouhá analýza (trust) - Rect: x=60, y=646, w=475, h=150
+          const trustText = analysis.trust || "";
+          const trustLines = fitTextInBox(
+            trustText,
+            475,
+            150,
+            fonts.readexRegular,
+            10,
+            12
+          );
+
+          let trustYPos = convertY(646, PAGE_HEIGHT);
+          trustLines.forEach(line => {
+            page1.drawText(line, {
+              x: 60,
+              y: trustYPos,
+              size: 10,
+              font: fonts.readexRegular,
+              color: rgb(0, 0, 0)
+            });
+            trustYPos -= 12;
+          });
+
         } catch (error) {
-          console.error('Error loading front background PDF:', error);
+          console.error('Error loading front background:', error);
           toast({
             title: "Chyba",
-            description: "Nepodařilo se načíst PDF pozadí přední strany",
+            description: "Nepodařilo se načíst pozadí přední strany",
             variant: "destructive",
           });
           return null;
         }
       }
 
-      // Load back page if available with preserved quality
+      // Load back page
       if (template.backgroundBackUrl) {
         try {
           const backResponse = await fetch(template.backgroundBackUrl);
@@ -187,7 +326,6 @@ export const PlayerAnalysisPreview = ({
           const contentType = backResponse.headers.get('content-type');
           const backBytes = await backResponse.arrayBuffer();
           
-          // Handle PDF backgrounds
           if (contentType?.includes('pdf')) {
             const backPdf = await PDFDocument.load(backBytes, {
               ignoreEncryption: true,
@@ -197,7 +335,6 @@ export const PlayerAnalysisPreview = ({
             const [backPage] = await pdfDoc.copyPages(backPdf, [0]);
             pdfDoc.addPage(backPage);
           }
-          // Handle PNG/JPG backgrounds with high quality
           else if (contentType?.includes('image')) {
             let image;
             
@@ -208,16 +345,12 @@ export const PlayerAnalysisPreview = ({
             }
             
             if (image) {
-              // Create A4 page (595.28 x 841.89 points)
-              const page = pdfDoc.addPage([595.28, 841.89]);
-              const { width, height } = page.getSize();
-              
-              // Draw image at full page size for maximum quality
+              const page = pdfDoc.addPage([595, 867]);
               page.drawImage(image, {
                 x: 0,
                 y: 0,
-                width: width,
-                height: height,
+                width: 595,
+                height: 867,
               });
             }
           } else {
@@ -230,40 +363,80 @@ export const PlayerAnalysisPreview = ({
             return null;
           }
 
-          // Add text overlays for back page
-          const backPageIndex = pdfDoc.getPages().length - 1;
-          const page = pdfDoc.getPage(backPageIndex);
-          const { width, height } = page.getSize();
-          const mmToPoints = (mm: number) => mm * 2.83465;
+          // === STRANA 2 - Text overlays ===
+          const page2 = pdfDoc.getPage(pdfDoc.getPages().length - 1);
 
-          // Add personality traits (3 columns, starting at 50mm)
-          const personalityTraits = analysis.personalityTraits || [];
-          const colWidth = width / 3;
-          personalityTraits.slice(0, 3).forEach((trait: any, idx: number) => {
-            const text = trait.description || "";
-            page.drawText(text, {
-              x: colWidth * idx + mmToPoints(10),
-              y: height - mmToPoints(60),
-              size: 8,
-              color: rgb(0.3, 0.3, 0.3),
-              maxWidth: colWidth - mmToPoints(20),
+          // 7) Predikce osobnostních rysů - 3 sloupce
+          const traitColumns = [
+            { x: 60, y: 146, w: 150, h: 160 },
+            { x: 226, y: 146, w: 150, h: 160 },
+            { x: 392, y: 146, w: 150, h: 160 }
+          ];
+
+          const traits = (analysis.personalityTraits || []).slice(0, 3);
+          traits.forEach((trait: any, idx: number) => {
+            const col = traitColumns[idx];
+            const title = (trait.title || "").slice(0, 20);
+            const description = (trait.description || "").slice(0, 160);
+            
+            page2.drawText(title, {
+              x: col.x,
+              y: convertY(col.y, PAGE_HEIGHT),
+              size: 12,
+              font: fonts.khandSemibold,
+              color: rgb(0, 0, 0)
+            });
+            
+            const descLines = fitTextInBox(
+              description,
+              col.w,
+              col.h - 15,
+              fonts.readexRegular,
+              8,
+              10
+            );
+            
+            let yPos = convertY(col.y + 15, PAGE_HEIGHT);
+            descLines.forEach(line => {
+              page2.drawText(line, {
+                x: col.x,
+                y: yPos,
+                size: 8,
+                font: fonts.readexRegular,
+                color: rgb(0.2, 0.2, 0.2)
+              });
+              yPos -= 10;
             });
           });
 
-          // Add collaboration section
-          const collaboration = analysis.collaboration || "";
-          page.drawText(collaboration, {
-            x: width / 2 - mmToPoints(65),
-            y: height - mmToPoints(120),
-            size: 8,
-            color: rgb(0.3, 0.3, 0.3),
-            maxWidth: mmToPoints(130),
+          // 8) Doporučení pro spolupráci - Rect: x=60, y=388, w=475, h=90
+          const collabText = (analysis.collaboration || "").slice(0, 450);
+          const collabLines = fitTextInBox(
+            collabText,
+            475,
+            90,
+            fonts.readexRegular,
+            8,
+            10
+          );
+
+          let collabYPos = convertY(388, PAGE_HEIGHT);
+          collabLines.forEach(line => {
+            page2.drawText(line, {
+              x: 60,
+              y: collabYPos,
+              size: 8,
+              font: fonts.readexRegular,
+              color: rgb(0, 0, 0)
+            });
+            collabYPos -= 10;
           });
+
         } catch (error) {
-          console.error('Error loading back background PDF:', error);
+          console.error('Error loading back background:', error);
           toast({
             title: "Chyba",
-            description: "Nepodařilo se načíst PDF pozadí zadní strany",
+            description: "Nepodařilo se načíst pozadí zadní strany",
             variant: "destructive",
           });
           return null;
