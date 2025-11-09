@@ -59,7 +59,6 @@ export const PlayerAnalysisPreview = ({
           } 
           // Handle PNG/JPG backgrounds with high quality
           else if (contentType?.includes('image')) {
-            const page = pdfDoc.addPage([595.28, 841.89]); // A4 size in points
             let image;
             
             if (contentType.includes('png')) {
@@ -69,8 +68,11 @@ export const PlayerAnalysisPreview = ({
             }
             
             if (image) {
+              // Create A4 page (595.28 x 841.89 points)
+              const page = pdfDoc.addPage([595.28, 841.89]);
               const { width, height } = page.getSize();
-              // Draw image at full quality covering entire page
+              
+              // Draw image at full page size for maximum quality
               page.drawImage(image, {
                 x: 0,
                 y: 0,
@@ -89,7 +91,8 @@ export const PlayerAnalysisPreview = ({
           }
 
           // Add text overlays for front page
-          const page = pdfDoc.getPage(0);
+          const frontPageIndex = pdfDoc.getPages().length - 1;
+          const page = pdfDoc.getPage(frontPageIndex);
           const { width, height } = page.getSize();
           
           // Convert mm to points (1mm = 2.83465 points)
@@ -196,7 +199,6 @@ export const PlayerAnalysisPreview = ({
           }
           // Handle PNG/JPG backgrounds with high quality
           else if (contentType?.includes('image')) {
-            const page = pdfDoc.addPage([595.28, 841.89]); // A4 size in points
             let image;
             
             if (contentType.includes('png')) {
@@ -206,8 +208,11 @@ export const PlayerAnalysisPreview = ({
             }
             
             if (image) {
+              // Create A4 page (595.28 x 841.89 points)
+              const page = pdfDoc.addPage([595.28, 841.89]);
               const { width, height } = page.getSize();
-              // Draw image at full quality covering entire page
+              
+              // Draw image at full page size for maximum quality
               page.drawImage(image, {
                 x: 0,
                 y: 0,
@@ -226,7 +231,8 @@ export const PlayerAnalysisPreview = ({
           }
 
           // Add text overlays for back page
-          const page = pdfDoc.getPage(1);
+          const backPageIndex = pdfDoc.getPages().length - 1;
+          const page = pdfDoc.getPage(backPageIndex);
           const { width, height } = page.getSize();
           const mmToPoints = (mm: number) => mm * 2.83465;
 

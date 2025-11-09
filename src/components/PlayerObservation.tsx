@@ -20,6 +20,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useUserRole } from "@/hooks/useUserRole";
 import { Sparkles, Loader2, Edit2 } from "lucide-react";
 import { PlayerAnalysisPreview } from "./PlayerAnalysisPreview";
+import { PREDEFINED_COLORS } from "@/lib/constants";
 
 interface Role {
   id: string;
@@ -479,11 +480,21 @@ export const PlayerObservation = ({ playerId, roomId }: PlayerObservationProps) 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Barva pásku</Label>
-                      <Input
+                      <Select
                         value={playerEdits.band_color}
-                        onChange={(e) => setPlayerEdits({ ...playerEdits, band_color: e.target.value })}
-                        placeholder="Modrá"
-                      />
+                        onValueChange={(value) => setPlayerEdits({ ...playerEdits, band_color: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Vyberte barvu pásku" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PREDEFINED_COLORS.map((color) => (
+                            <SelectItem key={color} value={color}>
+                              {color}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="space-y-2">
                       <Label>Pohlaví</Label>

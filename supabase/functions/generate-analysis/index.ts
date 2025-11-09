@@ -74,6 +74,16 @@ serve(async (req) => {
 
     console.log("Pozorování načteno");
 
+    // Fetch available roles for this room
+    const { data: availableRoles, error: rolesError } = await supabase
+      .from("role_templates")
+      .select("name, czech_name, english_name, description")
+      .eq("room_id", player.session.rooms.id);
+
+    if (rolesError) {
+      console.error("Chyba při načítání rolí:", rolesError);
+    }
+
     // Fetch behavior categories with items (including psychological meanings)
     const { data: behaviorData, error: behaviorError } = await supabase
       .from("behavior_categories")
@@ -136,6 +146,16 @@ serve(async (req) => {
       }
     }
 
+    // Prepare list of available roles based on language
+    const lang = observation?.language || "cs";
+    const rolesList = (availableRoles || []).map((r: any) => {
+      if (lang === "cs") return r.czech_name || r.name;
+      if (lang === "en") return r.english_name || r.name;
+      return r.name;
+    }).filter(Boolean);
+
+    const rolesString = rolesList.join(", ");
+
     // Prepare player data for AI
     const playerData = {
       full_name: player.full_name,
@@ -167,14 +187,16 @@ serve(async (req) => {
     
     const selectedLanguage = languageMap[playerData.language] || languageMap.cs;
 
-    // Build system prompt with language instruction
+    // Build system prompt with language instruction and ENFORCE role selection
     const systemPrompt = `Jsi expert na psychologickou analýzu a hodnocení týmové spolupráce v únikových hrách.
 ${aiBrief}
 
 DŮLEŽITÉ: ${selectedLanguage.instruction}
 
+${roleName ? `KRITICKÉ: Hráč má PŘIŘAZENOU ROLI: "${roleName}". MUSÍŠ použít PŘESNĚ tuto roli v poli "role". Nesmíš použít žádnou jinou roli.` : `KRITICKÉ: Vyber roli POUZE z těchto dostupných rolí: ${rolesString}. NESMÍŠ vymýšlet žádné jiné role, které nejsou v tomto seznamu.`}
+
 Vždy vrať validní JSON s následujícími klíči:
-- role: Typ role hráče (např. "Supporter", "Navigator", "Analyzer", "Leader") - ${selectedLanguage.instruction}
+- role: ${roleName ? `MUSÍ BÝT PŘESNĚ: "${roleName}"` : `Jedna z těchto rolí: ${rolesString}`}
 - strengths: Pole 3 objektů s klíči "title" a "description" pro silné stránky
 - weaknesses: Pole 3 objektů s klíči "title" a "description" pro oblasti k rozvoji
 - trust: Dlouhý text (100-150 slov) o důvěře hráče v sebe, ostatní a příběh
@@ -233,7 +255,10 @@ Vrať JSON s klíči: role, strengths (array[3] objektů s title+description - d
                 properties: {
                   role: {
                     type: "string",
-                    description: "Player's role type (e.g., Supporter, Navigator, Analyzer, Leader)"
+                    description: roleName 
+                      ? `Player's assigned role. MUST be exactly: "${roleName}"` 
+                      : `Player's role. Choose ONLY from these available roles: ${rolesString}`,
+                    enum: roleName ? [roleName] : rolesList
                   },
                   strengths: {
                     type: "array",
@@ -354,6 +379,20 @@ Vrať JSON s klíči: role, strengths (array[3] objektů s title+description - d
     }
 
     console.log("AI výstup validován");
+
+    // Validate and enforce role
+    if (roleName && aiOutputJson.role !== roleName) {
+      console.error(`AI vrátilo nesprávnou roli: ${aiOutputJson.role}, očekávána: ${roleName}`);
+      aiOutputJson.role = roleName; // Force correct role
+    }
+
+    if (!roleName && !rolesList.includes(aiOutputJson.role)) {
+      console.error(`AI vrátilo nevalidní roli: ${aiOutputJson.role}, dostupné: ${rolesString}`);
+      // Use first available role as fallback
+      aiOutputJson.role = rolesList[0] || "Neurčená role";
+    }
+
+    console.log("Role validována:", aiOutputJson.role);
 
     // Save or update analysis
     const { data: existingAnalysis } = await supabase
