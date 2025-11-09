@@ -35,35 +35,60 @@ export const PlayerAnalysisPreview = ({
     try {
       const pdfDoc = await PDFDocument.create();
 
-      // Load background PDFs if available with preserved quality
+      // Load background for front page (supports both PDF and PNG/JPG)
       if (template.backgroundFrontUrl) {
         try {
           const frontResponse = await fetch(template.backgroundFrontUrl);
           
-          // Check if response is ok and content type is PDF
           if (!frontResponse.ok) {
-            throw new Error(`Failed to fetch PDF: ${frontResponse.statusText}`);
+            throw new Error(`Failed to fetch background: ${frontResponse.statusText}`);
           }
           
           const contentType = frontResponse.headers.get('content-type');
-          if (!contentType?.includes('pdf')) {
-            console.warn('Front background is not a PDF, skipping overlay');
-            toast({
-              title: "Varování",
-              description: "Pozadí přední strany není PDF soubor",
-              variant: "destructive",
+          const frontBytes = await frontResponse.arrayBuffer();
+          
+          let frontPage;
+          
+          // Handle PDF backgrounds
+          if (contentType?.includes('pdf')) {
+            const frontPdf = await PDFDocument.load(frontBytes, { 
+              ignoreEncryption: true,
+              updateMetadata: false,
+              throwOnInvalidObject: false
             });
-            return null;
+            [frontPage] = await pdfDoc.copyPages(frontPdf, [0]);
+          } 
+          // Handle PNG/JPG backgrounds with high quality
+          else if (contentType?.includes('image')) {
+            const page = pdfDoc.addPage([595.28, 841.89]); // A4 size in points
+            let image;
+            
+            if (contentType.includes('png')) {
+              image = await pdfDoc.embedPng(frontBytes);
+            } else if (contentType.includes('jpeg') || contentType.includes('jpg')) {
+              image = await pdfDoc.embedJpg(frontBytes);
+            }
+            
+            if (image) {
+              const { width, height } = page.getSize();
+              // Scale image to fit page while maintaining quality
+              page.drawImage(image, {
+                x: 0,
+                y: 0,
+                width: width,
+                height: height,
+              });
+            }
+            frontPage = page;
+          } else {
+            throw new Error('Unsupported background format');
           }
           
-          const frontBytes = await frontResponse.arrayBuffer();
-          const frontPdf = await PDFDocument.load(frontBytes, { 
-            ignoreEncryption: true,
-            updateMetadata: false,
-            throwOnInvalidObject: false
-          });
-          const [frontPage] = await pdfDoc.copyPages(frontPdf, [0]);
-          pdfDoc.addPage(frontPage);
+          if (!frontPage) {
+            frontPage = pdfDoc.addPage();
+          } else if (contentType?.includes('pdf')) {
+            pdfDoc.addPage(frontPage);
+          }
 
           // Add text overlays for front page
           const page = pdfDoc.getPage(0);
@@ -154,30 +179,55 @@ export const PlayerAnalysisPreview = ({
         try {
           const backResponse = await fetch(template.backgroundBackUrl);
           
-          // Check if response is ok and content type is PDF
           if (!backResponse.ok) {
-            throw new Error(`Failed to fetch PDF: ${backResponse.statusText}`);
+            throw new Error(`Failed to fetch background: ${backResponse.statusText}`);
           }
           
           const contentType = backResponse.headers.get('content-type');
-          if (!contentType?.includes('pdf')) {
-            console.warn('Back background is not a PDF, skipping overlay');
-            toast({
-              title: "Varování",
-              description: "Pozadí zadní strany není PDF soubor",
-              variant: "destructive",
+          const backBytes = await backResponse.arrayBuffer();
+          
+          let backPage;
+          
+          // Handle PDF backgrounds
+          if (contentType?.includes('pdf')) {
+            const backPdf = await PDFDocument.load(backBytes, {
+              ignoreEncryption: true,
+              updateMetadata: false,
+              throwOnInvalidObject: false
             });
-            return null;
+            [backPage] = await pdfDoc.copyPages(backPdf, [0]);
+          }
+          // Handle PNG/JPG backgrounds with high quality
+          else if (contentType?.includes('image')) {
+            const page = pdfDoc.addPage([595.28, 841.89]); // A4 size in points
+            let image;
+            
+            if (contentType.includes('png')) {
+              image = await pdfDoc.embedPng(backBytes);
+            } else if (contentType.includes('jpeg') || contentType.includes('jpg')) {
+              image = await pdfDoc.embedJpg(backBytes);
+            }
+            
+            if (image) {
+              const { width, height } = page.getSize();
+              // Scale image to fit page while maintaining quality
+              page.drawImage(image, {
+                x: 0,
+                y: 0,
+                width: width,
+                height: height,
+              });
+            }
+            backPage = page;
+          } else {
+            throw new Error('Unsupported background format');
           }
           
-          const backBytes = await backResponse.arrayBuffer();
-          const backPdf = await PDFDocument.load(backBytes, {
-            ignoreEncryption: true,
-            updateMetadata: false,
-            throwOnInvalidObject: false
-          });
-          const [backPage] = await pdfDoc.copyPages(backPdf, [0]);
-          pdfDoc.addPage(backPage);
+          if (!backPage) {
+            backPage = pdfDoc.addPage();
+          } else if (contentType?.includes('pdf')) {
+            pdfDoc.addPage(backPage);
+          }
 
           // Add text overlays for back page
           const page = pdfDoc.getPage(1);
