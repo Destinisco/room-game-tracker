@@ -222,6 +222,77 @@ Vrať JSON s klíči: role, strengths (array[3] objektů s title+description - d
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "create_analysis",
+              description: "Create a psychological analysis of the player",
+              parameters: {
+                type: "object",
+                properties: {
+                  role: {
+                    type: "string",
+                    description: "Player's role type (e.g., Supporter, Navigator, Analyzer, Leader)"
+                  },
+                  strengths: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        title: { type: "string" },
+                        description: { type: "string", description: "Max 2-3 lines, 30-40 words" }
+                      },
+                      required: ["title", "description"],
+                      additionalProperties: false
+                    },
+                    minItems: 3,
+                    maxItems: 3
+                  },
+                  weaknesses: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        title: { type: "string" },
+                        description: { type: "string", description: "Max 2-3 lines, 30-40 words" }
+                      },
+                      required: ["title", "description"],
+                      additionalProperties: false
+                    },
+                    minItems: 3,
+                    maxItems: 3
+                  },
+                  trust: {
+                    type: "string",
+                    description: "Long text (100-150 words) about player's trust in themselves, others, and the story"
+                  },
+                  personalityTraits: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        title: { type: "string" },
+                        description: { type: "string", description: "Max 2-3 lines, 30-40 words" }
+                      },
+                      required: ["title", "description"],
+                      additionalProperties: false
+                    },
+                    minItems: 3,
+                    maxItems: 3
+                  },
+                  collaboration: {
+                    type: "string",
+                    description: "Short text (50-70 words) with recommendations for future team collaboration"
+                  }
+                },
+                required: ["role", "strengths", "weaknesses", "trust", "personalityTraits", "collaboration"],
+                additionalProperties: false
+              }
+            }
+          }
+        ],
+        tool_choice: { type: "function", function: { name: "create_analysis" } }
       }),
     });
 
@@ -242,23 +313,20 @@ Vrať JSON s klíči: role, strengths (array[3] objektů s title+description - d
     const aiData = await aiResponse.json();
     console.log("AI odpověď přijata");
 
-    const aiContent = aiData.choices?.[0]?.message?.content;
-    if (!aiContent) {
-      throw new Error("AI nevrátilo žádný obsah");
+    // Extract structured output from tool call
+    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+    if (!toolCall || toolCall.function?.name !== "create_analysis") {
+      console.error("AI nevrátilo tool call:", JSON.stringify(aiData, null, 2));
+      throw new Error("AI nevrátilo strukturovaný výstup");
     }
 
-    // Parse JSON from AI response
     let aiOutputJson;
     try {
-      // Try to extract JSON from markdown code blocks if present
-      const jsonMatch = aiContent.match(/```json\s*([\s\S]*?)\s*```/) || 
-                       aiContent.match(/```\s*([\s\S]*?)\s*```/);
-      
-      const jsonString = jsonMatch ? jsonMatch[1] : aiContent;
-      aiOutputJson = JSON.parse(jsonString.trim());
+      aiOutputJson = JSON.parse(toolCall.function.arguments);
+      console.log("AI výstup úspěšně parsován z tool call");
     } catch (parseError) {
-      console.error("Chyba při parsování JSON z AI:", parseError);
-      console.error("AI obsah:", aiContent);
+      console.error("Chyba při parsování arguments z tool call:", parseError);
+      console.error("Arguments:", toolCall.function.arguments);
       throw new Error("AI nevrátilo platný JSON");
     }
 
