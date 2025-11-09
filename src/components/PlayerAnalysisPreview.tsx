@@ -37,129 +37,185 @@ export const PlayerAnalysisPreview = ({
 
       // Load background PDFs if available with preserved quality
       if (template.backgroundFrontUrl) {
-        const frontResponse = await fetch(template.backgroundFrontUrl);
-        const frontBytes = await frontResponse.arrayBuffer();
-        const frontPdf = await PDFDocument.load(frontBytes, { 
-          ignoreEncryption: true,
-          updateMetadata: false 
-        });
-        const [frontPage] = await pdfDoc.copyPages(frontPdf, [0]);
-        pdfDoc.addPage(frontPage);
+        try {
+          const frontResponse = await fetch(template.backgroundFrontUrl);
+          
+          // Check if response is ok and content type is PDF
+          if (!frontResponse.ok) {
+            throw new Error(`Failed to fetch PDF: ${frontResponse.statusText}`);
+          }
+          
+          const contentType = frontResponse.headers.get('content-type');
+          if (!contentType?.includes('pdf')) {
+            console.warn('Front background is not a PDF, skipping overlay');
+            toast({
+              title: "Varování",
+              description: "Pozadí přední strany není PDF soubor",
+              variant: "destructive",
+            });
+            return null;
+          }
+          
+          const frontBytes = await frontResponse.arrayBuffer();
+          const frontPdf = await PDFDocument.load(frontBytes, { 
+            ignoreEncryption: true,
+            updateMetadata: false,
+            throwOnInvalidObject: false
+          });
+          const [frontPage] = await pdfDoc.copyPages(frontPdf, [0]);
+          pdfDoc.addPage(frontPage);
 
-        // Add text overlays for front page
-        const page = pdfDoc.getPage(0);
-        const { width, height } = page.getSize();
-        
-        // Convert mm to points (1mm = 2.83465 points)
-        const mmToPoints = (mm: number) => mm * 2.83465;
-        
-        // Add color (25mm from top, centered)
-        const color = analysis.color || player?.band_color || "neznámá";
-        page.drawText(color, {
-          x: width / 2 - (color.length * 3),
-          y: height - mmToPoints(25),
-          size: 10,
-          color: rgb(0, 0, 0),
-        });
+          // Add text overlays for front page
+          const page = pdfDoc.getPage(0);
+          const { width, height } = page.getSize();
+          
+          // Convert mm to points (1mm = 2.83465 points)
+          const mmToPoints = (mm: number) => mm * 2.83465;
+          
+          // Add color (25mm from top, centered)
+          const color = analysis.color || player?.band_color || "neznámá";
+          page.drawText(color, {
+            x: width / 2 - (color.length * 3),
+            y: height - mmToPoints(25),
+            size: 10,
+            color: rgb(0, 0, 0),
+          });
 
-        // Add role (60mm from top, centered)
-        const role = analysis.role || "Neznámá role";
-        page.drawText(role, {
-          x: width / 2 - (role.length * 4),
-          y: height - mmToPoints(60),
-          size: 14,
-          color: rgb(0, 0, 0),
-        });
+          // Add role (60mm from top, centered)
+          const role = analysis.role || "Neznámá role";
+          page.drawText(role, {
+            x: width / 2 - (role.length * 4),
+            y: height - mmToPoints(60),
+            size: 14,
+            color: rgb(0, 0, 0),
+          });
 
-        // Add game code (85mm from top, centered)
-        const gameCode = analysis.gameCode || "N/A";
-        page.drawText(gameCode, {
-          x: width / 2 - (gameCode.length * 2),
-          y: height - mmToPoints(85),
-          size: 8,
-          color: rgb(0, 0, 0),
-        });
+          // Add game code (85mm from top, centered)
+          const gameCode = analysis.gameCode || "N/A";
+          page.drawText(gameCode, {
+            x: width / 2 - (gameCode.length * 2),
+            y: height - mmToPoints(85),
+            size: 8,
+            color: rgb(0, 0, 0),
+          });
 
-        // Add strengths (left column, starting at 110mm)
-        const strengths = analysis.strengths || [];
-        let yPos = height - mmToPoints(110);
-        strengths.slice(0, 3).forEach((item: any, idx: number) => {
-          const text = item.description || "";
-          page.drawText(text, {
-            x: mmToPoints(20),
-            y: yPos,
+          // Add strengths (left column, starting at 110mm)
+          const strengths = analysis.strengths || [];
+          let yPos = height - mmToPoints(110);
+          strengths.slice(0, 3).forEach((item: any, idx: number) => {
+            const text = item.description || "";
+            page.drawText(text, {
+              x: mmToPoints(20),
+              y: yPos,
+              size: 8,
+              color: rgb(0.3, 0.3, 0.3),
+              maxWidth: mmToPoints(80),
+            });
+            yPos -= mmToPoints(15);
+          });
+
+          // Add weaknesses (right column, starting at 110mm)
+          const weaknesses = analysis.weaknesses || [];
+          yPos = height - mmToPoints(110);
+          weaknesses.slice(0, 3).forEach((item: any, idx: number) => {
+            const text = item.description || "";
+            page.drawText(text, {
+              x: mmToPoints(115),
+              y: yPos,
+              size: 8,
+              color: rgb(0.3, 0.3, 0.3),
+              maxWidth: mmToPoints(80),
+            });
+            yPos -= mmToPoints(15);
+          });
+
+          // Add trust section
+          const trust = analysis.trust || "";
+          page.drawText(trust, {
+            x: width / 2 - mmToPoints(75),
+            y: height - mmToPoints(180),
             size: 8,
             color: rgb(0.3, 0.3, 0.3),
-            maxWidth: mmToPoints(80),
+            maxWidth: mmToPoints(150),
           });
-          yPos -= mmToPoints(15);
-        });
-
-        // Add weaknesses (right column, starting at 110mm)
-        const weaknesses = analysis.weaknesses || [];
-        yPos = height - mmToPoints(110);
-        weaknesses.slice(0, 3).forEach((item: any, idx: number) => {
-          const text = item.description || "";
-          page.drawText(text, {
-            x: mmToPoints(115),
-            y: yPos,
-            size: 8,
-            color: rgb(0.3, 0.3, 0.3),
-            maxWidth: mmToPoints(80),
+        } catch (error) {
+          console.error('Error loading front background PDF:', error);
+          toast({
+            title: "Chyba",
+            description: "Nepodařilo se načíst PDF pozadí přední strany",
+            variant: "destructive",
           });
-          yPos -= mmToPoints(15);
-        });
-
-        // Add trust section
-        const trust = analysis.trust || "";
-        page.drawText(trust, {
-          x: width / 2 - mmToPoints(75),
-          y: height - mmToPoints(180),
-          size: 8,
-          color: rgb(0.3, 0.3, 0.3),
-          maxWidth: mmToPoints(150),
-        });
+          return null;
+        }
       }
 
       // Load back page if available with preserved quality
       if (template.backgroundBackUrl) {
-        const backResponse = await fetch(template.backgroundBackUrl);
-        const backBytes = await backResponse.arrayBuffer();
-        const backPdf = await PDFDocument.load(backBytes, {
-          ignoreEncryption: true,
-          updateMetadata: false
-        });
-        const [backPage] = await pdfDoc.copyPages(backPdf, [0]);
-        pdfDoc.addPage(backPage);
+        try {
+          const backResponse = await fetch(template.backgroundBackUrl);
+          
+          // Check if response is ok and content type is PDF
+          if (!backResponse.ok) {
+            throw new Error(`Failed to fetch PDF: ${backResponse.statusText}`);
+          }
+          
+          const contentType = backResponse.headers.get('content-type');
+          if (!contentType?.includes('pdf')) {
+            console.warn('Back background is not a PDF, skipping overlay');
+            toast({
+              title: "Varování",
+              description: "Pozadí zadní strany není PDF soubor",
+              variant: "destructive",
+            });
+            return null;
+          }
+          
+          const backBytes = await backResponse.arrayBuffer();
+          const backPdf = await PDFDocument.load(backBytes, {
+            ignoreEncryption: true,
+            updateMetadata: false,
+            throwOnInvalidObject: false
+          });
+          const [backPage] = await pdfDoc.copyPages(backPdf, [0]);
+          pdfDoc.addPage(backPage);
 
-        // Add text overlays for back page
-        const page = pdfDoc.getPage(1);
-        const { width, height } = page.getSize();
-        const mmToPoints = (mm: number) => mm * 2.83465;
+          // Add text overlays for back page
+          const page = pdfDoc.getPage(1);
+          const { width, height } = page.getSize();
+          const mmToPoints = (mm: number) => mm * 2.83465;
 
-        // Add personality traits (3 columns, starting at 50mm)
-        const personalityTraits = analysis.personalityTraits || [];
-        const colWidth = width / 3;
-        personalityTraits.slice(0, 3).forEach((trait: any, idx: number) => {
-          const text = trait.description || "";
-          page.drawText(text, {
-            x: colWidth * idx + mmToPoints(10),
-            y: height - mmToPoints(60),
+          // Add personality traits (3 columns, starting at 50mm)
+          const personalityTraits = analysis.personalityTraits || [];
+          const colWidth = width / 3;
+          personalityTraits.slice(0, 3).forEach((trait: any, idx: number) => {
+            const text = trait.description || "";
+            page.drawText(text, {
+              x: colWidth * idx + mmToPoints(10),
+              y: height - mmToPoints(60),
+              size: 8,
+              color: rgb(0.3, 0.3, 0.3),
+              maxWidth: colWidth - mmToPoints(20),
+            });
+          });
+
+          // Add collaboration section
+          const collaboration = analysis.collaboration || "";
+          page.drawText(collaboration, {
+            x: width / 2 - mmToPoints(65),
+            y: height - mmToPoints(120),
             size: 8,
             color: rgb(0.3, 0.3, 0.3),
-            maxWidth: colWidth - mmToPoints(20),
+            maxWidth: mmToPoints(130),
           });
-        });
-
-        // Add collaboration section
-        const collaboration = analysis.collaboration || "";
-        page.drawText(collaboration, {
-          x: width / 2 - mmToPoints(65),
-          y: height - mmToPoints(120),
-          size: 8,
-          color: rgb(0.3, 0.3, 0.3),
-          maxWidth: mmToPoints(130),
-        });
+        } catch (error) {
+          console.error('Error loading back background PDF:', error);
+          toast({
+            title: "Chyba",
+            description: "Nepodařilo se načíst PDF pozadí zadní strany",
+            variant: "destructive",
+          });
+          return null;
+        }
       }
 
       return pdfDoc;
