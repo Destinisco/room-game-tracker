@@ -7,6 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { AppHeader } from "@/components/AppHeader";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { PREDEFINED_COLORS } from "@/lib/constants";
 
 interface Player {
   id: string;
@@ -404,34 +412,40 @@ const PlayerIntakeForm = ({
 
             <div className="space-y-2">
               <label className="text-lg font-medium">Barva pásky</label>
-              <select
+              <Select
                 value={formData.band_color}
-                onChange={(e) => setFormData({ ...formData, band_color: e.target.value })}
-                className="w-full p-4 text-lg border rounded-md"
+                onValueChange={(value) => setFormData({ ...formData, band_color: value })}
               >
-                <option value="">Vyberte barvu</option>
-                {bandColors.map((color) => {
-                  const isUsed = usedColors.includes(color) && player.band_color !== color;
-                  return (
-                    <option key={color} value={color} disabled={isUsed}>
-                      {color} {isUsed ? "(používá jiný hráč)" : ""}
-                    </option>
-                  );
-                })}
-              </select>
+                <SelectTrigger className="w-full p-4 text-lg h-auto">
+                  <SelectValue placeholder="Vyberte barvu" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[300px]">
+                  {(bandColors.length > 0 ? bandColors : PREDEFINED_COLORS).map((color) => {
+                    const isUsed = usedColors.includes(color) && player.band_color !== color;
+                    return (
+                      <SelectItem key={color} value={color} disabled={isUsed}>
+                        {color} {isUsed ? "(používá jiný hráč)" : ""}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
               <label className="text-lg font-medium">Pohlaví</label>
-              <select
+              <Select
                 value={formData.gender}
-                onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                className="w-full p-4 text-lg border rounded-md"
+                onValueChange={(value) => setFormData({ ...formData, gender: value })}
               >
-                <option value="">Vyberte pohlaví</option>
-                <option value="Muž">Muž</option>
-                <option value="Žena">Žena</option>
-            </select>
+                <SelectTrigger className="w-full p-4 text-lg h-auto">
+                  <SelectValue placeholder="Vyberte pohlaví" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Muž">Muž</SelectItem>
+                  <SelectItem value="Žena">Žena</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="flex items-start space-x-3 p-4 bg-muted rounded-md">

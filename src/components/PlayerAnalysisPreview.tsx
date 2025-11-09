@@ -35,11 +35,14 @@ export const PlayerAnalysisPreview = ({
     try {
       const pdfDoc = await PDFDocument.create();
 
-      // Load background PDFs if available
+      // Load background PDFs if available with preserved quality
       if (template.backgroundFrontUrl) {
         const frontResponse = await fetch(template.backgroundFrontUrl);
         const frontBytes = await frontResponse.arrayBuffer();
-        const frontPdf = await PDFDocument.load(frontBytes);
+        const frontPdf = await PDFDocument.load(frontBytes, { 
+          ignoreEncryption: true,
+          updateMetadata: false 
+        });
         const [frontPage] = await pdfDoc.copyPages(frontPdf, [0]);
         pdfDoc.addPage(frontPage);
 
@@ -118,11 +121,14 @@ export const PlayerAnalysisPreview = ({
         });
       }
 
-      // Load back page if available
+      // Load back page if available with preserved quality
       if (template.backgroundBackUrl) {
         const backResponse = await fetch(template.backgroundBackUrl);
         const backBytes = await backResponse.arrayBuffer();
-        const backPdf = await PDFDocument.load(backBytes);
+        const backPdf = await PDFDocument.load(backBytes, {
+          ignoreEncryption: true,
+          updateMetadata: false
+        });
         const [backPage] = await pdfDoc.copyPages(backPdf, [0]);
         pdfDoc.addPage(backPage);
 

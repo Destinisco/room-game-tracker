@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
+import { PREDEFINED_COLORS } from "@/lib/constants";
 import {
   Dialog,
   DialogContent,
@@ -165,12 +166,20 @@ export const AddPlayerDialog = ({
                         <SelectValue placeholder="Vyberte barvu" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
-                      {bandColors.map((color) => (
-                        <SelectItem key={color} value={color}>
-                          {color}
-                        </SelectItem>
-                      ))}
+                    <SelectContent className="max-h-[300px]">
+                      {bandColors.length > 0 ? (
+                        bandColors.map((color) => (
+                          <SelectItem key={color} value={color}>
+                            {color}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        PREDEFINED_COLORS.map((color) => (
+                          <SelectItem key={color} value={color}>
+                            {color}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />

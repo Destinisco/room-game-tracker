@@ -18,12 +18,20 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { CreateGameDialog } from "@/components/CreateGameDialog";
 import { GameSessionsList } from "@/components/GameSessionsList";
 import { RolesTab } from "@/components/RolesTab";
 import { BehaviorCategoriesTab } from "@/components/BehaviorCategoriesTab";
 import { AnalysisTemplateTab } from "@/components/AnalysisTemplateTab";
 import { DeleteRoomDialog } from "@/components/DeleteRoomDialog";
+import { PREDEFINED_COLORS } from "@/lib/constants";
 
 interface Room {
   id: string;
@@ -182,11 +190,11 @@ const RoomDetail = () => {
     }
   };
 
-  const handleAddColor = async () => {
-    if (!room || !newColor.trim()) return;
+  const handleAddColor = async (color: string) => {
+    if (!room || !color || room.band_colors.includes(color)) return;
 
     try {
-      const updatedColors = [...room.band_colors, newColor.trim()];
+      const updatedColors = [...room.band_colors, color];
       const { error } = await supabase
         .from("rooms")
         .update({ band_colors: updatedColors })
@@ -196,8 +204,17 @@ const RoomDetail = () => {
 
       setRoom({ ...room, band_colors: updatedColors });
       setNewColor("");
+      toast({
+        title: "Barva přidána",
+        description: `Barva "${color}" byla úspěšně přidána`,
+      });
     } catch (error) {
       console.error("Error adding color:", error);
+      toast({
+        title: "Chyba",
+        description: "Nepodařilo se přidat barvu",
+        variant: "destructive",
+      });
     }
   };
 
@@ -365,15 +382,26 @@ const RoomDetail = () => {
                     </div>
                   </div>
                   <div className="flex gap-2 mb-3">
-                    <Input
+                    <Select
                       value={newColor}
-                      onChange={(e) => setNewColor(e.target.value)}
-                      placeholder="např. Hnědá, Modrá, Červená..."
-                      onKeyPress={(e) => e.key === "Enter" && handleAddColor()}
-                    />
-                    <Button type="button" onClick={handleAddColor} size="icon">
-                      <Plus className="w-4 h-4" />
-                    </Button>
+                      onValueChange={(color) => {
+                        setNewColor(color);
+                        handleAddColor(color);
+                      }}
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Vyberte barvu pro přidání" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[300px]">
+                        {PREDEFINED_COLORS.filter(
+                          (color) => !room.band_colors.includes(color)
+                        ).map((color) => (
+                          <SelectItem key={color} value={color}>
+                            {color}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {room.band_colors.map((color, index) => (
