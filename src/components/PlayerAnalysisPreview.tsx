@@ -47,8 +47,6 @@ export const PlayerAnalysisPreview = ({
           const contentType = frontResponse.headers.get('content-type');
           const frontBytes = await frontResponse.arrayBuffer();
           
-          let frontPage;
-          
           // Handle PDF backgrounds
           if (contentType?.includes('pdf')) {
             const frontPdf = await PDFDocument.load(frontBytes, { 
@@ -56,7 +54,8 @@ export const PlayerAnalysisPreview = ({
               updateMetadata: false,
               throwOnInvalidObject: false
             });
-            [frontPage] = await pdfDoc.copyPages(frontPdf, [0]);
+            const [frontPage] = await pdfDoc.copyPages(frontPdf, [0]);
+            pdfDoc.addPage(frontPage);
           } 
           // Handle PNG/JPG backgrounds with high quality
           else if (contentType?.includes('image')) {
@@ -71,7 +70,7 @@ export const PlayerAnalysisPreview = ({
             
             if (image) {
               const { width, height } = page.getSize();
-              // Scale image to fit page while maintaining quality
+              // Draw image at full quality covering entire page
               page.drawImage(image, {
                 x: 0,
                 y: 0,
@@ -79,15 +78,14 @@ export const PlayerAnalysisPreview = ({
                 height: height,
               });
             }
-            frontPage = page;
           } else {
-            throw new Error('Unsupported background format');
-          }
-          
-          if (!frontPage) {
-            frontPage = pdfDoc.addPage();
-          } else if (contentType?.includes('pdf')) {
-            pdfDoc.addPage(frontPage);
+            console.error('Unsupported background format:', contentType);
+            toast({
+              title: "Chyba",
+              description: "Nepodporovaný formát pozadí",
+              variant: "destructive",
+            });
+            return null;
           }
 
           // Add text overlays for front page
@@ -186,8 +184,6 @@ export const PlayerAnalysisPreview = ({
           const contentType = backResponse.headers.get('content-type');
           const backBytes = await backResponse.arrayBuffer();
           
-          let backPage;
-          
           // Handle PDF backgrounds
           if (contentType?.includes('pdf')) {
             const backPdf = await PDFDocument.load(backBytes, {
@@ -195,7 +191,8 @@ export const PlayerAnalysisPreview = ({
               updateMetadata: false,
               throwOnInvalidObject: false
             });
-            [backPage] = await pdfDoc.copyPages(backPdf, [0]);
+            const [backPage] = await pdfDoc.copyPages(backPdf, [0]);
+            pdfDoc.addPage(backPage);
           }
           // Handle PNG/JPG backgrounds with high quality
           else if (contentType?.includes('image')) {
@@ -210,7 +207,7 @@ export const PlayerAnalysisPreview = ({
             
             if (image) {
               const { width, height } = page.getSize();
-              // Scale image to fit page while maintaining quality
+              // Draw image at full quality covering entire page
               page.drawImage(image, {
                 x: 0,
                 y: 0,
@@ -218,15 +215,14 @@ export const PlayerAnalysisPreview = ({
                 height: height,
               });
             }
-            backPage = page;
           } else {
-            throw new Error('Unsupported background format');
-          }
-          
-          if (!backPage) {
-            backPage = pdfDoc.addPage();
-          } else if (contentType?.includes('pdf')) {
-            pdfDoc.addPage(backPage);
+            console.error('Unsupported background format:', contentType);
+            toast({
+              title: "Chyba",
+              description: "Nepodporovaný formát pozadí zadní strany",
+              variant: "destructive",
+            });
+            return null;
           }
 
           // Add text overlays for back page
