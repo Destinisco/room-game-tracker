@@ -3,7 +3,14 @@ import { Printer, Download } from "lucide-react";
 import { useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { getPdfTemplate } from "@/components/pdf-templates";
-import { PDFDocument, rgb } from "pdf-lib";
+import { PDFDocument, rgb, PDFFont } from "pdf-lib";
+import layoutConfig from "@/config/layout.json";
+import {
+  smartTrim,
+  fitTextInBox,
+  getCenteredX,
+  getRightAlignedX,
+} from "@/utils/pdfTextUtils";
 
 interface PlayerAnalysisPreviewProps {
   playerId: string;
@@ -30,70 +37,16 @@ export const PlayerAnalysisPreview = ({
 
   const TemplateComponent = getPdfTemplate(template.pdfTemplateComponent);
 
-  // Utility functions
-  const convertY = (yTop: number, pageHeight = 867): number => {
-    return pageHeight - yTop;
-  };
-
-  const wrapText = (
-    text: string,
-    maxWidth: number,
-    font: any,
-    fontSize: number
-  ): string[] => {
-    const words = text.split(' ');
-    const lines: string[] = [];
-    let currentLine = '';
-
-    for (const word of words) {
-      const testLine = currentLine ? `${currentLine} ${word}` : word;
-      const width = font.widthOfTextAtSize(testLine, fontSize);
-      
-      if (width > maxWidth && currentLine) {
-        lines.push(currentLine);
-        currentLine = word;
-      } else {
-        currentLine = testLine;
-      }
-    }
-    
-    if (currentLine) lines.push(currentLine);
-    return lines;
-  };
-
-  const fitTextInBox = (
-    text: string,
-    maxWidth: number,
-    maxHeight: number,
-    font: any,
-    fontSize: number,
-    lineHeight: number
-  ): string[] => {
-    const lines = wrapText(text, maxWidth, font, fontSize);
-    const maxLines = Math.floor(maxHeight / lineHeight);
-    
-    if (lines.length <= maxLines) return lines;
-    
-    const truncatedLines = lines.slice(0, maxLines);
-    const lastLine = truncatedLines[maxLines - 1];
-    
-    let shortened = lastLine;
-    while (font.widthOfTextAtSize(shortened + '...', fontSize) > maxWidth) {
-      const words = shortened.split(' ');
-      if (words.length <= 1) break;
-      words.pop();
-      shortened = words.join(' ');
-    }
-    truncatedLines[maxLines - 1] = shortened + '...';
-    
-    return truncatedLines;
+  type Fonts = {
+    readexRegular: PDFFont;
+    khandSemibold: PDFFont;
   };
 
   const generatePDF = async (): Promise<PDFDocument | null> => {
     setGenerating(true);
     try {
       const pdfDoc = await PDFDocument.create();
-      const PAGE_HEIGHT = 867;
+      const { w: PAGE_WIDTH, h: PAGE_HEIGHT } = layoutConfig.pageSize;
 
       // Load custom fonts
       console.log('Loading fonts...');
@@ -102,235 +55,221 @@ export const PlayerAnalysisPreview = ({
         fetch('https://fonts.gstatic.com/s/khand/v17/TwMN-IINQlQQ0bL5cFE3ZwaH__-C.ttf').then(r => r.arrayBuffer())
       ]);
 
-      const fonts = {
+      const fonts: Fonts = {
         readexRegular: await pdfDoc.embedFont(readexRegularBytes),
         khandSemibold: await pdfDoc.embedFont(khandSemiboldBytes)
       };
       console.log('Fonts loaded');
 
-      // Load background for front page
+      // Load Page 1 template as vector PDF
       if (template.backgroundFrontUrl) {
         try {
           const frontResponse = await fetch(template.backgroundFrontUrl);
           
           if (!frontResponse.ok) {
-            throw new Error(`Failed to fetch background: ${frontResponse.statusText}`);
+            throw new Error(`Failed to fetch front template: ${frontResponse.statusText}`);
           }
           
           const contentType = frontResponse.headers.get('content-type');
           const frontBytes = await frontResponse.arrayBuffer();
           
-          if (contentType?.includes('pdf')) {
-            const frontPdf = await PDFDocument.load(frontBytes, { 
-              ignoreEncryption: true,
-              updateMetadata: false,
-              throwOnInvalidObject: false
-            });
-            const [frontPage] = await pdfDoc.copyPages(frontPdf, [0]);
-            pdfDoc.addPage(frontPage);
-          } 
-          else if (contentType?.includes('image')) {
-            let image;
-            
-            if (contentType.includes('png')) {
-              image = await pdfDoc.embedPng(frontBytes);
-            } else if (contentType.includes('jpeg') || contentType.includes('jpg')) {
-              image = await pdfDoc.embedJpg(frontBytes);
-            }
-            
-            if (image) {
-              const page = pdfDoc.addPage([595, 867]);
-              page.drawImage(image, {
-                x: 0,
-                y: 0,
-                width: 595,
-                height: 867,
-              });
-            }
-          } else {
-            console.error('Unsupported background format:', contentType);
+          if (!contentType?.includes('pdf')) {
+            console.error('Front template must be PDF, got:', contentType);
             toast({
               title: "Chyba",
-              description: "Nepodporovaný formát pozadí",
+              description: "Šablona přední strany musí být ve formátu PDF",
               variant: "destructive",
             });
             return null;
           }
 
-          // === STRANA 1 - Text overlays ===
+          // Load template PDF and copy page
+          const frontPdf = await PDFDocument.load(frontBytes, { 
+            ignoreEncryption: true,
+            updateMetadata: false,
+            throwOnInvalidObject: false
+          });
+          const [frontPage] = await pdfDoc.copyPages(frontPdf, [0]);
+          pdfDoc.addPage(frontPage);
+
+          // === PAGE 1 - Text overlays using layout config ===
           const page1 = pdfDoc.getPage(pdfDoc.getPages().length - 1);
+          const layout1 = layoutConfig.page1;
 
-          // 1) Barva hráče - Rect: x=385, y=115, w=160, h=20 (LEFT align) - posunut nahoru a doprava
-          const barvaText = (analysis.color || player?.band_color || "neznámá").slice(0, 20);
-          console.log('Barva hráče:', barvaText);
-          page1.drawText(barvaText, {
-            x: 385,
-            y: convertY(115, PAGE_HEIGHT),
-            size: 12,
-            font: fonts.readexRegular,
+          // 1) Player Color
+          const colorConfig = layout1.color;
+          const colorText = smartTrim(
+            analysis.color || player?.band_color || "neznámá",
+            colorConfig.maxChars
+          );
+          const colorFont = fonts.readexRegular;
+          const colorX = colorConfig.align === 'center' 
+            ? getCenteredX(colorText, colorFont, colorConfig.size, colorConfig.box.x, colorConfig.box.w)
+            : colorConfig.box.x;
+          
+          page1.drawText(colorText, {
+            x: colorX,
+            y: colorConfig.box.y,
+            size: colorConfig.size,
+            font: colorFont,
             color: rgb(0, 0, 0)
           });
 
-          // 2) Role - Rect: x=210, y=238, w=175, h=34 (CENTER)
-          const roleText = (analysis.role || "").slice(0, 30);
-          const roleWidth = fonts.khandSemibold.widthOfTextAtSize(roleText, 24);
-          const roleCenterX = 210 + (175 - roleWidth) / 2;
+          // 2) Role
+          const roleConfig = layout1.role;
+          const roleText = smartTrim(analysis.role || "", roleConfig.maxChars);
+          const roleFont = fonts.khandSemibold;
+          const roleX = roleConfig.align === 'center'
+            ? getCenteredX(roleText, roleFont, roleConfig.size, roleConfig.box.x, roleConfig.box.w)
+            : roleConfig.box.x;
+          
           page1.drawText(roleText, {
-            x: roleCenterX,
-            y: convertY(238, PAGE_HEIGHT),
-            size: 24,
-            font: fonts.khandSemibold,
+            x: roleX,
+            y: roleConfig.box.y,
+            size: roleConfig.size,
+            font: roleFont,
             color: rgb(0, 0, 0)
           });
 
-          // 3) Kód hry - Rect: x=485, y=304, w=90, h=16 (RIGHT align)
-          const gameCodeText = (analysis.gameCode || "").slice(0, 15);
-          const gameCodeWidth = fonts.readexRegular.widthOfTextAtSize(gameCodeText, 8);
-          const gameCodeX = 485 + 90 - gameCodeWidth;
+          // 3) Game Code
+          const gameCodeConfig = layout1.gameCode;
+          const gameCodeText = smartTrim(analysis.gameCode || "", gameCodeConfig.maxChars);
+          const gameCodeFont = fonts.readexRegular;
+          const gameCodeX = gameCodeConfig.align === 'right'
+            ? getRightAlignedX(gameCodeText, gameCodeFont, gameCodeConfig.size, gameCodeConfig.box.x, gameCodeConfig.box.w)
+            : gameCodeConfig.box.x;
+          
           page1.drawText(gameCodeText, {
             x: gameCodeX,
-            y: convertY(304, PAGE_HEIGHT),
-            size: 8,
-            font: fonts.readexRegular,
+            y: gameCodeConfig.box.y,
+            size: gameCodeConfig.size,
+            font: gameCodeFont,
             color: rgb(0, 0, 0)
           });
 
-          // 4) Silné stránky - 3 boxy (x=110, y=372/460/548, w=215, h=66)
-          const strengthBoxes = [
-            { x: 110, y: 372, w: 215, h: 66 },
-            { x: 110, y: 460, w: 215, h: 66 },
-            { x: 110, y: 548, w: 215, h: 66 }
-          ];
-
+          // 4) Strengths - 3 boxes
           const strengths = (analysis.strengths || []).slice(0, 3);
-          console.log('Strengths data:', JSON.stringify(strengths));
           strengths.forEach((item: any, idx: number) => {
-            const box = strengthBoxes[idx];
-            const title = (item.title || "").slice(0, 30);
-            const text = (item.text || item.description || "").slice(0, 260);
+            const config = layout1.strengths[idx];
+            if (!config) return;
+
+            const title = smartTrim(item.title || "", 30);
+            const bodyText = smartTrim(item.text || item.description || "", config.body.maxChars);
             
-            console.log(`Strength ${idx}: title="${title}", text="${text}"`);
-            
+            // Draw title
             if (title) {
               page1.drawText(title, {
-                x: box.x,
-                y: convertY(box.y, PAGE_HEIGHT),
-                size: 10,
+                x: config.title.x,
+                y: config.title.y,
+                size: config.title.size,
                 font: fonts.readexRegular,
                 color: rgb(0, 0, 0)
               });
             }
             
-            if (text) {
-              const descLines = fitTextInBox(
-                text,
-                box.w,
-                box.h - 12,
+            // Draw body (wrapped)
+            if (bodyText) {
+              const bodyLines = fitTextInBox(
+                bodyText,
                 fonts.readexRegular,
-                8,
-                10
+                config.body.size,
+                config.body.w,
+                60, // Approximate height
+                10  // Line height
               );
               
-              console.log(`Strength ${idx} lines:`, descLines);
-              
-              let yPos = convertY(box.y + 12, PAGE_HEIGHT);
-              descLines.forEach(line => {
+              let yPos = config.body.y;
+              bodyLines.forEach(line => {
                 if (line) {
                   page1.drawText(line, {
-                    x: box.x,
+                    x: config.body.x,
                     y: yPos,
-                    size: 8,
+                    size: config.body.size,
                     font: fonts.readexRegular,
                     color: rgb(0.2, 0.2, 0.2)
                   });
+                  yPos -= 10;
                 }
-                yPos -= 10;
               });
             }
           });
 
-          // 5) Slabé stránky - 3 boxy (x=388, y=372/460/548, w=215, h=66)
-          const weaknessBoxes = [
-            { x: 388, y: 372, w: 215, h: 66 },
-            { x: 388, y: 460, w: 215, h: 66 },
-            { x: 388, y: 548, w: 215, h: 66 }
-          ];
-
+          // 5) Weaknesses - 3 boxes
           const weaknesses = (analysis.weaknesses || []).slice(0, 3);
-          console.log('Weaknesses data:', JSON.stringify(weaknesses));
           weaknesses.forEach((item: any, idx: number) => {
-            const box = weaknessBoxes[idx];
-            const title = (item.title || "").slice(0, 30);
-            const text = (item.text || item.description || "").slice(0, 260);
+            const config = layout1.weaknesses[idx];
+            if (!config) return;
+
+            const title = smartTrim(item.title || "", 30);
+            const bodyText = smartTrim(item.text || item.description || "", config.body.maxChars);
             
-            console.log(`Weakness ${idx}: title="${title}", text="${text}"`);
-            
+            // Draw title
             if (title) {
               page1.drawText(title, {
-                x: box.x,
-                y: convertY(box.y, PAGE_HEIGHT),
-                size: 10,
+                x: config.title.x,
+                y: config.title.y,
+                size: config.title.size,
                 font: fonts.readexRegular,
                 color: rgb(0, 0, 0)
               });
             }
             
-            if (text) {
-              const descLines = fitTextInBox(
-                text,
-                box.w,
-                box.h - 12,
+            // Draw body (wrapped)
+            if (bodyText) {
+              const bodyLines = fitTextInBox(
+                bodyText,
                 fonts.readexRegular,
-                8,
+                config.body.size,
+                config.body.w,
+                60,
                 10
               );
               
-              console.log(`Weakness ${idx} lines:`, descLines);
-              
-              let yPos = convertY(box.y + 12, PAGE_HEIGHT);
-              descLines.forEach(line => {
+              let yPos = config.body.y;
+              bodyLines.forEach(line => {
                 if (line) {
                   page1.drawText(line, {
-                    x: box.x,
+                    x: config.body.x,
                     y: yPos,
-                    size: 8,
+                    size: config.body.size,
                     font: fonts.readexRegular,
                     color: rgb(0.2, 0.2, 0.2)
                   });
+                  yPos -= 10;
                 }
-                yPos -= 10;
               });
             }
           });
 
-          // 6) Dlouhá analýza - Rect: x=60, y=640, w=475, h=120
-          const longAnalysisText = (analysis.longAnalysis || analysis.trust || "").slice(0, 1000);
-          console.log('Long analysis:', longAnalysisText.substring(0, 100));
+          // 6) Long Analysis
+          const longAnalysisConfig = layout1.longAnalysis;
+          const longAnalysisText = smartTrim(
+            analysis.longAnalysis || analysis.trust || "",
+            longAnalysisConfig.maxChars
+          );
           
           if (longAnalysisText) {
             const longAnalysisLines = fitTextInBox(
               longAnalysisText,
-              475,
-              120,
               fonts.readexRegular,
-              10,
+              longAnalysisConfig.size,
+              longAnalysisConfig.w,
+              longAnalysisConfig.h,
               12
             );
 
-            console.log('Long analysis lines:', longAnalysisLines.length);
-
-            let longAnalysisYPos = convertY(640, PAGE_HEIGHT);
+            let yPos = longAnalysisConfig.y;
             longAnalysisLines.forEach(line => {
               if (line) {
                 page1.drawText(line, {
-                  x: 60,
-                  y: longAnalysisYPos,
-                  size: 10,
+                  x: longAnalysisConfig.x,
+                  y: yPos,
+                  size: longAnalysisConfig.size,
                   font: fonts.readexRegular,
                   color: rgb(0, 0, 0)
                 });
+                yPos -= 12;
               }
-              longAnalysisYPos -= 12;
             });
           }
 
@@ -345,141 +284,118 @@ export const PlayerAnalysisPreview = ({
         }
       }
 
-      // Load back page
+      // Load Page 2 template as vector PDF
       if (template.backgroundBackUrl) {
         try {
           const backResponse = await fetch(template.backgroundBackUrl);
           
           if (!backResponse.ok) {
-            throw new Error(`Failed to fetch background: ${backResponse.statusText}`);
+            throw new Error(`Failed to fetch back template: ${backResponse.statusText}`);
           }
           
           const contentType = backResponse.headers.get('content-type');
           const backBytes = await backResponse.arrayBuffer();
           
-          if (contentType?.includes('pdf')) {
-            const backPdf = await PDFDocument.load(backBytes, {
-              ignoreEncryption: true,
-              updateMetadata: false,
-              throwOnInvalidObject: false
-            });
-            const [backPage] = await pdfDoc.copyPages(backPdf, [0]);
-            pdfDoc.addPage(backPage);
-          }
-          else if (contentType?.includes('image')) {
-            let image;
-            
-            if (contentType.includes('png')) {
-              image = await pdfDoc.embedPng(backBytes);
-            } else if (contentType.includes('jpeg') || contentType.includes('jpg')) {
-              image = await pdfDoc.embedJpg(backBytes);
-            }
-            
-            if (image) {
-              const page = pdfDoc.addPage([595, 867]);
-              page.drawImage(image, {
-                x: 0,
-                y: 0,
-                width: 595,
-                height: 867,
-              });
-            }
-          } else {
-            console.error('Unsupported background format:', contentType);
+          if (!contentType?.includes('pdf')) {
+            console.error('Back template must be PDF, got:', contentType);
             toast({
               title: "Chyba",
-              description: "Nepodporovaný formát pozadí zadní strany",
+              description: "Šablona zadní strany musí být ve formátu PDF",
               variant: "destructive",
             });
             return null;
           }
 
-          // === STRANA 2 - Text overlays ===
-          const page2 = pdfDoc.getPage(pdfDoc.getPages().length - 1);
+          // Load template PDF and copy page
+          const backPdf = await PDFDocument.load(backBytes, {
+            ignoreEncryption: true,
+            updateMetadata: false,
+            throwOnInvalidObject: false
+          });
+          const [backPage] = await pdfDoc.copyPages(backPdf, [0]);
+          pdfDoc.addPage(backPage);
 
-          // 7) Predikce osobnostních rysů - 3 sloupce
-          // Titulek: x=115/275/435, y=238
-          // Text: x=115/275/435, y=258, w=150, h=70
+          // === PAGE 2 - Text overlays using layout config ===
+          const page2 = pdfDoc.getPage(pdfDoc.getPages().length - 1);
+          const layout2 = layoutConfig.page2;
+
+          // 7) Personality Traits - 3 columns
           const traits = (analysis.traits || analysis.personalityTraits || []).slice(0, 3);
-          const traitXPositions = [115, 275, 435];
-          
-          console.log('Traits data:', JSON.stringify(traits));
           
           traits.forEach((trait: any, idx: number) => {
-            const xPos = traitXPositions[idx];
-            const title = (trait.title || "").slice(0, 20);
-            const text = (trait.text || trait.description || "").slice(0, 160);
+            const config = layout2.traits[idx];
+            if (!config) return;
+
+            const title = smartTrim(trait.title || "", config.title.maxChars);
+            const bodyText = smartTrim(trait.text || trait.description || "", config.body.maxChars);
             
-            console.log(`Trait ${idx}: title="${title}", text="${text}"`);
-            
-            // Titulek
+            // Draw title
             if (title) {
               page2.drawText(title, {
-                x: xPos,
-                y: convertY(238, PAGE_HEIGHT),
-                size: 12,
+                x: config.title.x,
+                y: config.title.y,
+                size: config.title.size,
                 font: fonts.khandSemibold,
                 color: rgb(0, 0, 0)
               });
             }
             
-            // Text
-            if (text) {
-              const descLines = fitTextInBox(
-                text,
-                150,
-                70,
+            // Draw body (wrapped)
+            if (bodyText) {
+              const bodyLines = fitTextInBox(
+                bodyText,
                 fonts.readexRegular,
-                8,
+                config.body.size,
+                config.body.w,
+                70,
                 10
               );
               
-              console.log(`Trait ${idx} lines:`, descLines);
-              
-              let yPos = convertY(258, PAGE_HEIGHT);
-              descLines.forEach(line => {
+              let yPos = config.body.y;
+              bodyLines.forEach(line => {
                 if (line) {
                   page2.drawText(line, {
-                    x: xPos,
+                    x: config.body.x,
                     y: yPos,
-                    size: 8,
+                    size: config.body.size,
                     font: fonts.readexRegular,
                     color: rgb(0.2, 0.2, 0.2)
                   });
+                  yPos -= 10;
                 }
-                yPos -= 10;
               });
             }
           });
 
-          // 8) Doporučení pro spolupráci - Rect: x=110, y=440, w=480, h=80
-          const collabText = (analysis.collaborationAdvice || analysis.collaboration || "").slice(0, 450);
-          console.log('Collaboration advice:', collabText.substring(0, 100));
+          // 8) Collaboration Advice
+          const collabConfig = layout2.collaboration;
+          const collabText = smartTrim(
+            analysis.collaborationAdvice || analysis.collaboration || "",
+            collabConfig.maxChars
+          );
           
           if (collabText) {
             const collabLines = fitTextInBox(
               collabText,
-              480,
-              80,
               fonts.readexRegular,
-              8,
+              collabConfig.size,
+              collabConfig.w,
+              collabConfig.h,
               10
             );
 
-            console.log('Collaboration lines:', collabLines.length);
-
-            let collabYPos = convertY(440, PAGE_HEIGHT);
+            let yPos = collabConfig.y;
             collabLines.forEach(line => {
               if (line) {
                 page2.drawText(line, {
-                  x: 110,
-                  y: collabYPos,
-                  size: 8,
+                  x: collabConfig.x,
+                  y: yPos,
+                  size: collabConfig.size,
                   font: fonts.readexRegular,
                   color: rgb(0, 0, 0)
                 });
+                yPos -= 10;
               }
-              collabYPos -= 10;
             });
           }
 
