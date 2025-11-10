@@ -723,6 +723,7 @@ export const PlayerObservation = ({ playerId, roomId }: PlayerObservationProps) 
                   name: template.name,
                   backgroundFrontUrl: template.background_front_url,
                   backgroundBackUrl: template.background_back_url,
+                  layout_config: template.layout_config,
                   version: template.version,
                   pdfTemplateComponent: template.room_type?.pdf_template_component || 'DefaultTemplate',
                 }}

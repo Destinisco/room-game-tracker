@@ -20,6 +20,7 @@ export type Database = {
           background_front_url: string | null
           created_at: string
           id: string
+          layout_config: Json | null
           name: string
           room_id: string | null
           room_type_id: string | null
@@ -32,6 +33,7 @@ export type Database = {
           background_front_url?: string | null
           created_at?: string
           id?: string
+          layout_config?: Json | null
           name: string
           room_id?: string | null
           room_type_id?: string | null
@@ -44,6 +46,7 @@ export type Database = {
           background_front_url?: string | null
           created_at?: string
           id?: string
+          layout_config?: Json | null
           name?: string
           room_id?: string | null
           room_type_id?: string | null

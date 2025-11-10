@@ -20,6 +20,7 @@ interface PlayerAnalysisPreviewProps {
     name: string;
     backgroundFrontUrl: string | null;
     backgroundBackUrl: string | null;
+    layout_config?: any;
     version: number;
     pdfTemplateComponent: string;
   };
@@ -47,8 +48,10 @@ export const PlayerAnalysisPreview = ({
   const generatePDF = async (): Promise<PDFDocument | null> => {
     setGenerating(true);
     try {
+      // Use room-specific layout config if available, otherwise fall back to default
+      const activeLayoutConfig = template.layout_config || layoutConfig;
       const pdfDoc = await PDFDocument.create();
-      const { w: PAGE_WIDTH, h: PAGE_HEIGHT } = layoutConfig.pageSize;
+      const { w: PAGE_WIDTH, h: PAGE_HEIGHT } = activeLayoutConfig.pageSize;
 
       // Load custom fonts
       console.log('Loading fonts...');
@@ -112,7 +115,7 @@ export const PlayerAnalysisPreview = ({
           }
 
           // === PAGE 1 - Text overlays using layout config ===
-          const layout1 = layoutConfig.page1;
+          const layout1 = activeLayoutConfig.page1;
 
           // 1) Player Color
           const colorConfig = layout1.color;
@@ -344,7 +347,7 @@ export const PlayerAnalysisPreview = ({
           }
 
           // === PAGE 2 - Text overlays using layout config ===
-          const layout2 = layoutConfig.page2;
+          const layout2 = activeLayoutConfig.page2;
 
           // 7) Personality Traits - 3 columns
           const traits = (analysis.traits || analysis.personalityTraits || []).slice(0, 3);

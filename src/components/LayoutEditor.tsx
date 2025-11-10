@@ -8,6 +8,8 @@ interface LayoutEditorProps {
   onClose: () => void;
   backgroundFrontUrl: string | null;
   backgroundBackUrl: string | null;
+  initialLayoutConfig?: any;
+  onSave?: (layoutConfig: any) => void;
 }
 
 type LayoutConfig = typeof layoutConfigImport;
@@ -22,9 +24,11 @@ interface DraggableBox {
   page: 1 | 2;
 }
 
-export const LayoutEditor = ({ onClose, backgroundFrontUrl, backgroundBackUrl }: LayoutEditorProps) => {
+export const LayoutEditor = ({ onClose, backgroundFrontUrl, backgroundBackUrl, initialLayoutConfig, onSave }: LayoutEditorProps) => {
   const { toast } = useToast();
-  const [layoutConfig, setLayoutConfig] = useState<LayoutConfig>(JSON.parse(JSON.stringify(layoutConfigImport)));
+  const [layoutConfig, setLayoutConfig] = useState<LayoutConfig>(
+    initialLayoutConfig ? JSON.parse(JSON.stringify(initialLayoutConfig)) : JSON.parse(JSON.stringify(layoutConfigImport))
+  );
   const [boxes, setBoxes] = useState<DraggableBox[]>([]);
   const [selectedBox, setSelectedBox] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -264,19 +268,25 @@ export const LayoutEditor = ({ onClose, backgroundFrontUrl, backgroundBackUrl }:
   };
 
   const handleSave = () => {
-    const json = JSON.stringify(layoutConfig, null, 2);
-    const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "layout.json";
-    link.click();
-    URL.revokeObjectURL(url);
+    if (onSave) {
+      // Save to database via callback
+      onSave(layoutConfig);
+    } else {
+      // Fallback: download as JSON file
+      const json = JSON.stringify(layoutConfig, null, 2);
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "layout.json";
+      link.click();
+      URL.revokeObjectURL(url);
 
-    toast({
-      title: "Layout uložen",
-      description: "Stáhněte layout.json a nahraďte soubor v src/config/layout.json",
-    });
+      toast({
+        title: "Layout uložen",
+        description: "Stáhněte layout.json a nahraďte soubor v src/config/layout.json",
+      });
+    }
   };
 
   // Convert PDF coordinates to screen coordinates
@@ -298,17 +308,20 @@ export const LayoutEditor = ({ onClose, backgroundFrontUrl, backgroundBackUrl }:
           <div>
             <h2 className="text-xl font-bold">Layout Editor</h2>
             <p className="text-sm text-muted-foreground">
-              Drag boxes to reposition. Use arrow keys (±1px) or Shift+arrows (±5px) for fine tuning.
+              {onSave 
+                ? "Přetáhněte boxy pro změnu pozice. Použijte šipky (±1px) nebo Shift+šipky (±5px) pro jemné doladění."
+                : "Drag boxes to reposition. Use arrow keys (±1px) or Shift+arrows (±5px) for fine tuning."
+              }
             </p>
           </div>
           <div className="flex gap-2">
             <Button onClick={handleSave} variant="default">
               <Save className="w-4 h-4 mr-2" />
-              Save Layout
+              {onSave ? "Uložit layout" : "Save Layout"}
             </Button>
             <Button onClick={onClose} variant="outline">
               <X className="w-4 h-4 mr-2" />
-              Close
+              {onSave ? "Zavřít" : "Close"}
             </Button>
           </div>
         </div>

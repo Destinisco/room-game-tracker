@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Save } from "lucide-react";
+import { Save, Layout } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { LayoutEditor } from "@/components/LayoutEditor";
 
 interface AnalysisTemplate {
   id: string;
@@ -16,6 +17,7 @@ interface AnalysisTemplate {
   slots_json: string;
   background_front_url: string | null;
   background_back_url: string | null;
+  layout_config: any | null;
   version: number;
   created_at: string;
   updated_at: string;
@@ -49,6 +51,7 @@ export const AnalysisTemplateTab = ({ roomTypeId, pdfTemplateComponent }: Analys
   const [template, setTemplate] = useState<AnalysisTemplate | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isLayoutEditorOpen, setIsLayoutEditorOpen] = useState(false);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -191,6 +194,44 @@ export const AnalysisTemplateTab = ({ roomTypeId, pdfTemplateComponent }: Analys
     }
   };
 
+  const handleSaveLayout = async (layoutConfig: any) => {
+    if (!template) {
+      toast({
+        title: "Chyba",
+        description: "Nejprve vytvořte šablonu",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("analysis_templates")
+        .update({
+          layout_config: layoutConfig,
+          version: template.version + 1,
+        })
+        .eq("id", template.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Layout uložen",
+        description: "Pozice textů byly úspěšně uloženy",
+      });
+
+      fetchTemplate();
+      setIsLayoutEditorOpen(false);
+    } catch (error) {
+      console.error("Error saving layout:", error);
+      toast({
+        title: "Chyba",
+        description: "Nepodařilo se uložit layout",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return <div className="text-muted-foreground">Načítání...</div>;
   }
@@ -322,7 +363,15 @@ export const AnalysisTemplateTab = ({ roomTypeId, pdfTemplateComponent }: Analys
             </div>
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <Button 
+              onClick={() => setIsLayoutEditorOpen(true)} 
+              variant="outline"
+              disabled={!formData.backgroundFrontUrl || !formData.backgroundBackUrl}
+            >
+              <Layout className="w-4 h-4 mr-2" />
+              Upravit pozice textů
+            </Button>
             <Button onClick={handleSave} disabled={saving}>
               <Save className="w-4 h-4 mr-2" />
               {saving ? "Ukládání..." : "Uložit šablonu"}
@@ -340,6 +389,16 @@ export const AnalysisTemplateTab = ({ roomTypeId, pdfTemplateComponent }: Analys
             </p>
           </CardContent>
         </Card>
+      )}
+
+      {isLayoutEditorOpen && (
+        <LayoutEditor
+          onClose={() => setIsLayoutEditorOpen(false)}
+          backgroundFrontUrl={formData.backgroundFrontUrl}
+          backgroundBackUrl={formData.backgroundBackUrl}
+          initialLayoutConfig={template?.layout_config}
+          onSave={handleSaveLayout}
+        />
       )}
     </div>
   );
