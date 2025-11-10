@@ -160,11 +160,12 @@ export const PlayerAnalysisPreview = ({
           // === STRANA 1 - Text overlays ===
           const page1 = pdfDoc.getPage(pdfDoc.getPages().length - 1);
 
-          // 1) Barva hráče - Rect: x=365, y=128, w=160, h=20 (LEFT align)
+          // 1) Barva hráče - Rect: x=385, y=115, w=160, h=20 (LEFT align) - posunut nahoru a doprava
           const barvaText = (analysis.color || player?.band_color || "neznámá").slice(0, 20);
+          console.log('Barva hráče:', barvaText);
           page1.drawText(barvaText, {
-            x: 365,
-            y: convertY(128, PAGE_HEIGHT),
+            x: 385,
+            y: convertY(115, PAGE_HEIGHT),
             size: 12,
             font: fonts.readexRegular,
             color: rgb(0, 0, 0)
@@ -202,39 +203,50 @@ export const PlayerAnalysisPreview = ({
           ];
 
           const strengths = (analysis.strengths || []).slice(0, 3);
+          console.log('Strengths data:', JSON.stringify(strengths));
           strengths.forEach((item: any, idx: number) => {
             const box = strengthBoxes[idx];
             const title = (item.title || "").slice(0, 30);
             const text = (item.text || item.description || "").slice(0, 260);
             
-            page1.drawText(title, {
-              x: box.x,
-              y: convertY(box.y, PAGE_HEIGHT),
-              size: 10,
-              font: fonts.readexRegular,
-              color: rgb(0, 0, 0)
-            });
+            console.log(`Strength ${idx}: title="${title}", text="${text}"`);
             
-            const descLines = fitTextInBox(
-              text,
-              box.w,
-              box.h - 12,
-              fonts.readexRegular,
-              8,
-              10
-            );
-            
-            let yPos = convertY(box.y + 12, PAGE_HEIGHT);
-            descLines.forEach(line => {
-              page1.drawText(line, {
+            if (title) {
+              page1.drawText(title, {
                 x: box.x,
-                y: yPos,
-                size: 8,
+                y: convertY(box.y, PAGE_HEIGHT),
+                size: 10,
                 font: fonts.readexRegular,
-                color: rgb(0.2, 0.2, 0.2)
+                color: rgb(0, 0, 0)
               });
-              yPos -= 10;
-            });
+            }
+            
+            if (text) {
+              const descLines = fitTextInBox(
+                text,
+                box.w,
+                box.h - 12,
+                fonts.readexRegular,
+                8,
+                10
+              );
+              
+              console.log(`Strength ${idx} lines:`, descLines);
+              
+              let yPos = convertY(box.y + 12, PAGE_HEIGHT);
+              descLines.forEach(line => {
+                if (line) {
+                  page1.drawText(line, {
+                    x: box.x,
+                    y: yPos,
+                    size: 8,
+                    font: fonts.readexRegular,
+                    color: rgb(0.2, 0.2, 0.2)
+                  });
+                }
+                yPos -= 10;
+              });
+            }
           });
 
           // 5) Slabé stránky - 3 boxy (x=388, y=372/460/548, w=215, h=66)
@@ -245,63 +257,82 @@ export const PlayerAnalysisPreview = ({
           ];
 
           const weaknesses = (analysis.weaknesses || []).slice(0, 3);
+          console.log('Weaknesses data:', JSON.stringify(weaknesses));
           weaknesses.forEach((item: any, idx: number) => {
             const box = weaknessBoxes[idx];
             const title = (item.title || "").slice(0, 30);
             const text = (item.text || item.description || "").slice(0, 260);
             
-            page1.drawText(title, {
-              x: box.x,
-              y: convertY(box.y, PAGE_HEIGHT),
-              size: 10,
-              font: fonts.readexRegular,
-              color: rgb(0, 0, 0)
-            });
+            console.log(`Weakness ${idx}: title="${title}", text="${text}"`);
             
-            const descLines = fitTextInBox(
-              text,
-              box.w,
-              box.h - 12,
-              fonts.readexRegular,
-              8,
-              10
-            );
-            
-            let yPos = convertY(box.y + 12, PAGE_HEIGHT);
-            descLines.forEach(line => {
-              page1.drawText(line, {
+            if (title) {
+              page1.drawText(title, {
                 x: box.x,
-                y: yPos,
-                size: 8,
+                y: convertY(box.y, PAGE_HEIGHT),
+                size: 10,
                 font: fonts.readexRegular,
-                color: rgb(0.2, 0.2, 0.2)
+                color: rgb(0, 0, 0)
               });
-              yPos -= 10;
-            });
+            }
+            
+            if (text) {
+              const descLines = fitTextInBox(
+                text,
+                box.w,
+                box.h - 12,
+                fonts.readexRegular,
+                8,
+                10
+              );
+              
+              console.log(`Weakness ${idx} lines:`, descLines);
+              
+              let yPos = convertY(box.y + 12, PAGE_HEIGHT);
+              descLines.forEach(line => {
+                if (line) {
+                  page1.drawText(line, {
+                    x: box.x,
+                    y: yPos,
+                    size: 8,
+                    font: fonts.readexRegular,
+                    color: rgb(0.2, 0.2, 0.2)
+                  });
+                }
+                yPos -= 10;
+              });
+            }
           });
 
           // 6) Dlouhá analýza - Rect: x=60, y=640, w=475, h=120
           const longAnalysisText = (analysis.longAnalysis || analysis.trust || "").slice(0, 1000);
-          const longAnalysisLines = fitTextInBox(
-            longAnalysisText,
-            475,
-            120,
-            fonts.readexRegular,
-            10,
-            12
-          );
+          console.log('Long analysis:', longAnalysisText.substring(0, 100));
+          
+          if (longAnalysisText) {
+            const longAnalysisLines = fitTextInBox(
+              longAnalysisText,
+              475,
+              120,
+              fonts.readexRegular,
+              10,
+              12
+            );
 
-          let longAnalysisYPos = convertY(640, PAGE_HEIGHT);
-          longAnalysisLines.forEach(line => {
-            page1.drawText(line, {
-              x: 60,
-              y: longAnalysisYPos,
-              size: 10,
-              font: fonts.readexRegular,
-              color: rgb(0, 0, 0)
+            console.log('Long analysis lines:', longAnalysisLines.length);
+
+            let longAnalysisYPos = convertY(640, PAGE_HEIGHT);
+            longAnalysisLines.forEach(line => {
+              if (line) {
+                page1.drawText(line, {
+                  x: 60,
+                  y: longAnalysisYPos,
+                  size: 10,
+                  font: fonts.readexRegular,
+                  color: rgb(0, 0, 0)
+                });
+              }
+              longAnalysisYPos -= 12;
             });
-            longAnalysisYPos -= 12;
-          });
+          }
 
         } catch (error) {
           console.error('Error loading front background:', error);
@@ -372,65 +403,85 @@ export const PlayerAnalysisPreview = ({
           const traits = (analysis.traits || analysis.personalityTraits || []).slice(0, 3);
           const traitXPositions = [115, 275, 435];
           
+          console.log('Traits data:', JSON.stringify(traits));
+          
           traits.forEach((trait: any, idx: number) => {
             const xPos = traitXPositions[idx];
             const title = (trait.title || "").slice(0, 20);
             const text = (trait.text || trait.description || "").slice(0, 160);
             
+            console.log(`Trait ${idx}: title="${title}", text="${text}"`);
+            
             // Titulek
-            page2.drawText(title, {
-              x: xPos,
-              y: convertY(238, PAGE_HEIGHT),
-              size: 12,
-              font: fonts.khandSemibold,
-              color: rgb(0, 0, 0)
-            });
+            if (title) {
+              page2.drawText(title, {
+                x: xPos,
+                y: convertY(238, PAGE_HEIGHT),
+                size: 12,
+                font: fonts.khandSemibold,
+                color: rgb(0, 0, 0)
+              });
+            }
             
             // Text
-            const descLines = fitTextInBox(
-              text,
-              150,
-              70,
-              fonts.readexRegular,
-              8,
-              10
-            );
-            
-            let yPos = convertY(258, PAGE_HEIGHT);
-            descLines.forEach(line => {
-              page2.drawText(line, {
-                x: xPos,
-                y: yPos,
-                size: 8,
-                font: fonts.readexRegular,
-                color: rgb(0.2, 0.2, 0.2)
+            if (text) {
+              const descLines = fitTextInBox(
+                text,
+                150,
+                70,
+                fonts.readexRegular,
+                8,
+                10
+              );
+              
+              console.log(`Trait ${idx} lines:`, descLines);
+              
+              let yPos = convertY(258, PAGE_HEIGHT);
+              descLines.forEach(line => {
+                if (line) {
+                  page2.drawText(line, {
+                    x: xPos,
+                    y: yPos,
+                    size: 8,
+                    font: fonts.readexRegular,
+                    color: rgb(0.2, 0.2, 0.2)
+                  });
+                }
+                yPos -= 10;
               });
-              yPos -= 10;
-            });
+            }
           });
 
           // 8) Doporučení pro spolupráci - Rect: x=110, y=440, w=480, h=80
           const collabText = (analysis.collaborationAdvice || analysis.collaboration || "").slice(0, 450);
-          const collabLines = fitTextInBox(
-            collabText,
-            480,
-            80,
-            fonts.readexRegular,
-            8,
-            10
-          );
+          console.log('Collaboration advice:', collabText.substring(0, 100));
+          
+          if (collabText) {
+            const collabLines = fitTextInBox(
+              collabText,
+              480,
+              80,
+              fonts.readexRegular,
+              8,
+              10
+            );
 
-          let collabYPos = convertY(440, PAGE_HEIGHT);
-          collabLines.forEach(line => {
-            page2.drawText(line, {
-              x: 110,
-              y: collabYPos,
-              size: 8,
-              font: fonts.readexRegular,
-              color: rgb(0, 0, 0)
+            console.log('Collaboration lines:', collabLines.length);
+
+            let collabYPos = convertY(440, PAGE_HEIGHT);
+            collabLines.forEach(line => {
+              if (line) {
+                page2.drawText(line, {
+                  x: 110,
+                  y: collabYPos,
+                  size: 8,
+                  font: fonts.readexRegular,
+                  color: rgb(0, 0, 0)
+                });
+              }
+              collabYPos -= 10;
             });
-            collabYPos -= 10;
-          });
+          }
 
         } catch (error) {
           console.error('Error loading back background:', error);
