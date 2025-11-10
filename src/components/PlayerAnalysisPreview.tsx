@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Printer, Download } from "lucide-react";
+import { Printer, Download, Settings } from "lucide-react";
 import { useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { getPdfTemplate } from "@/components/pdf-templates";
@@ -11,6 +11,7 @@ import {
   getCenteredX,
   getRightAlignedX,
 } from "@/utils/pdfTextUtils";
+import { LayoutEditor } from "./LayoutEditor";
 
 interface PlayerAnalysisPreviewProps {
   playerId: string;
@@ -33,6 +34,7 @@ export const PlayerAnalysisPreview = ({
 }: PlayerAnalysisPreviewProps) => {
   const { toast } = useToast();
   const [generating, setGenerating] = useState(false);
+  const [layoutMode, setLayoutMode] = useState(false);
   const pdfContainerRef = useRef<HTMLDivElement>(null);
 
   const TemplateComponent = getPdfTemplate(template.pdfTemplateComponent);
@@ -531,6 +533,10 @@ export const PlayerAnalysisPreview = ({
 
       {/* Action buttons */}
       <div className="flex gap-2 justify-end no-print">
+        <Button onClick={() => setLayoutMode(true)} variant="secondary">
+          <Settings className="w-4 h-4 mr-2" />
+          Layout Mode
+        </Button>
         <Button onClick={handleDownload} disabled={generating} variant="outline">
           {generating ? (
             <>
@@ -558,6 +564,15 @@ export const PlayerAnalysisPreview = ({
           )}
         </Button>
       </div>
+
+      {/* Layout Editor Modal */}
+      {layoutMode && (
+        <LayoutEditor
+          onClose={() => setLayoutMode(false)}
+          backgroundFrontUrl={template.backgroundFrontUrl}
+          backgroundBackUrl={template.backgroundBackUrl}
+        />
+      )}
 
       {/* PDF Template */}
       <div className="pdf-container" ref={pdfContainerRef}>
