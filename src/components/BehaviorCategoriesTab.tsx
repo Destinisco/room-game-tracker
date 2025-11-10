@@ -13,8 +13,7 @@ interface BehaviorItem {
   category_id: string;
   label: string;
   psychological_meaning: string | null;
-  created_at: string;
-  updated_at: string | null;
+  updated_at?: string;
 }
 
 interface BehaviorCategory {
@@ -64,7 +63,7 @@ export const BehaviorCategoriesTab = ({ roomId }: BehaviorCategoriesTabProps) =>
 
       const { data: itemsData, error: itemsError } = await supabase
         .from("behavior_items")
-        .select("id, category_id, label, psychological_meaning, created_at, updated_at")
+        .select("*")
         .in(
           "category_id",
           (categoriesData || []).map((c) => c.id)
