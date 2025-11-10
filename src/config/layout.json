@@ -1,0 +1,88 @@
+{
+  "pageSize": { "w": 595.28, "h": 841.89 },
+  "page1": {
+    "color": {
+      "font": "Readex",
+      "size": 12,
+      "box": { "x": 240, "y": 666, "w": 115, "h": 24 },
+      "align": "center",
+      "maxChars": 20
+    },
+    "role": {
+      "font": "KhandSB",
+      "size": 24,
+      "box": { "x": 210, "y": 612, "w": 175, "h": 30 },
+      "align": "center",
+      "maxChars": 30
+    },
+    "gameCode": {
+      "font": "Readex",
+      "size": 8,
+      "box": { "x": 285, "y": 570, "w": 280, "h": 16 },
+      "align": "right",
+      "maxChars": 20
+    },
+    "strengths": [
+      {
+        "title": { "font": "Readex", "size": 10, "x": 120, "y": 468, "w": 215 },
+        "body": { "font": "Readex", "size": 8, "x": 120, "y": 455, "w": 215, "maxChars": 260 }
+      },
+      {
+        "title": { "font": "Readex", "size": 10, "x": 120, "y": 394, "w": 215 },
+        "body": { "font": "Readex", "size": 8, "x": 120, "y": 381, "w": 215, "maxChars": 260 }
+      },
+      {
+        "title": { "font": "Readex", "size": 10, "x": 120, "y": 321, "w": 215 },
+        "body": { "font": "Readex", "size": 8, "x": 120, "y": 308, "w": 215, "maxChars": 260 }
+      }
+    ],
+    "weaknesses": [
+      {
+        "title": { "font": "Readex", "size": 10, "x": 355, "y": 468, "w": 215 },
+        "body": { "font": "Readex", "size": 8, "x": 355, "y": 455, "w": 215, "maxChars": 260 }
+      },
+      {
+        "title": { "font": "Readex", "size": 10, "x": 355, "y": 394, "w": 215 },
+        "body": { "font": "Readex", "size": 8, "x": 355, "y": 381, "w": 215, "maxChars": 260 }
+      },
+      {
+        "title": { "font": "Readex", "size": 10, "x": 355, "y": 321, "w": 215 },
+        "body": { "font": "Readex", "size": 8, "x": 355, "y": 308, "w": 215, "maxChars": 260 }
+      }
+    ],
+    "longAnalysis": {
+      "font": "Readex",
+      "size": 10,
+      "x": 60,
+      "y": 170,
+      "w": 475,
+      "h": 110,
+      "maxChars": 1000
+    }
+  },
+  "page2": {
+    "traits": [
+      {
+        "title": { "font": "KhandSB", "size": 12, "x": 120, "y": 610, "w": 150, "align": "left", "maxChars": 20 },
+        "body": { "font": "Readex", "size": 8, "x": 120, "y": 596, "w": 150, "maxChars": 160 }
+      },
+      {
+        "title": { "font": "KhandSB", "size": 12, "x": 295, "y": 610, "w": 150, "align": "left", "maxChars": 20 },
+        "body": { "font": "Readex", "size": 8, "x": 295, "y": 596, "w": 150, "maxChars": 160 }
+      },
+      {
+        "title": { "font": "KhandSB", "size": 12, "x": 470, "y": 610, "w": 150, "align": "left", "maxChars": 20 },
+        "body": { "font": "Readex", "size": 8, "x": 470, "y": 596, "w": 150, "maxChars": 160 }
+      }
+    ],
+    "collaboration": {
+      "font": "Readex",
+      "size": 8,
+      "x": 120,
+      "y": 442,
+      "w": 355,
+      "h": 80,
+      "maxChars": 450
+    }
+  }
+}
