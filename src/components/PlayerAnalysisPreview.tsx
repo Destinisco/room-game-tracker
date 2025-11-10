@@ -73,27 +73,43 @@ export const PlayerAnalysisPreview = ({
           const contentType = frontResponse.headers.get('content-type');
           const frontBytes = await frontResponse.arrayBuffer();
           
-          if (!contentType?.includes('pdf')) {
-            console.error('Front template must be PDF, got:', contentType);
-            toast({
-              title: "Chyba",
-              description: "Šablona přední strany musí být ve formátu PDF",
-              variant: "destructive",
+          let page1;
+          
+          if (contentType?.includes('pdf')) {
+            // Load template PDF and copy page (BEST QUALITY - vector)
+            const frontPdf = await PDFDocument.load(frontBytes, { 
+              ignoreEncryption: true,
+              updateMetadata: false,
+              throwOnInvalidObject: false
             });
-            return null;
+            const [frontPage] = await pdfDoc.copyPages(frontPdf, [0]);
+            pdfDoc.addPage(frontPage);
+            page1 = pdfDoc.getPage(pdfDoc.getPages().length - 1);
+          } else {
+            // FALLBACK: PNG/image template (LOWER QUALITY - rasterized)
+            console.warn('⚠️ Front template is not PDF (got:', contentType, ') - using PNG fallback. Quality will be lower.');
+            console.warn('⚠️ For best quality, replace with PDF template in database.');
+            
+            toast({
+              title: "Varování",
+              description: "Šablona není ve formátu PDF - kvalita může být nižší",
+              variant: "default",
+            });
+            
+            // Create blank page and embed PNG
+            page1 = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+            const image = await pdfDoc.embedPng(frontBytes);
+            const imgDims = image.scale(1);
+            
+            page1.drawImage(image, {
+              x: 0,
+              y: 0,
+              width: PAGE_WIDTH,
+              height: PAGE_HEIGHT,
+            });
           }
 
-          // Load template PDF and copy page
-          const frontPdf = await PDFDocument.load(frontBytes, { 
-            ignoreEncryption: true,
-            updateMetadata: false,
-            throwOnInvalidObject: false
-          });
-          const [frontPage] = await pdfDoc.copyPages(frontPdf, [0]);
-          pdfDoc.addPage(frontPage);
-
           // === PAGE 1 - Text overlays using layout config ===
-          const page1 = pdfDoc.getPage(pdfDoc.getPages().length - 1);
           const layout1 = layoutConfig.page1;
 
           // 1) Player Color
@@ -296,27 +312,36 @@ export const PlayerAnalysisPreview = ({
           const contentType = backResponse.headers.get('content-type');
           const backBytes = await backResponse.arrayBuffer();
           
-          if (!contentType?.includes('pdf')) {
-            console.error('Back template must be PDF, got:', contentType);
-            toast({
-              title: "Chyba",
-              description: "Šablona zadní strany musí být ve formátu PDF",
-              variant: "destructive",
+          let page2;
+          
+          if (contentType?.includes('pdf')) {
+            // Load template PDF and copy page (BEST QUALITY - vector)
+            const backPdf = await PDFDocument.load(backBytes, {
+              ignoreEncryption: true,
+              updateMetadata: false,
+              throwOnInvalidObject: false
             });
-            return null;
+            const [backPage] = await pdfDoc.copyPages(backPdf, [0]);
+            pdfDoc.addPage(backPage);
+            page2 = pdfDoc.getPage(pdfDoc.getPages().length - 1);
+          } else {
+            // FALLBACK: PNG/image template (LOWER QUALITY - rasterized)
+            console.warn('⚠️ Back template is not PDF (got:', contentType, ') - using PNG fallback. Quality will be lower.');
+            console.warn('⚠️ For best quality, replace with PDF template in database.');
+            
+            // Create blank page and embed PNG
+            page2 = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+            const image = await pdfDoc.embedPng(backBytes);
+            
+            page2.drawImage(image, {
+              x: 0,
+              y: 0,
+              width: PAGE_WIDTH,
+              height: PAGE_HEIGHT,
+            });
           }
 
-          // Load template PDF and copy page
-          const backPdf = await PDFDocument.load(backBytes, {
-            ignoreEncryption: true,
-            updateMetadata: false,
-            throwOnInvalidObject: false
-          });
-          const [backPage] = await pdfDoc.copyPages(backPdf, [0]);
-          pdfDoc.addPage(backPage);
-
           // === PAGE 2 - Text overlays using layout config ===
-          const page2 = pdfDoc.getPage(pdfDoc.getPages().length - 1);
           const layout2 = layoutConfig.page2;
 
           // 7) Personality Traits - 3 columns
