@@ -160,52 +160,52 @@ export const PlayerAnalysisPreview = ({
           // === STRANA 1 - Text overlays ===
           const page1 = pdfDoc.getPage(pdfDoc.getPages().length - 1);
 
-          // 1) Barva hráče - Rect: x=330, y=120, w=210, h=22
-          const barvaText = analysis.color || player?.band_color || "neznámá";
+          // 1) Barva hráče - Rect: x=365, y=128, w=160, h=20 (LEFT align)
+          const barvaText = (analysis.color || player?.band_color || "neznámá").slice(0, 20);
           page1.drawText(barvaText, {
-            x: 330,
-            y: convertY(120, PAGE_HEIGHT),
+            x: 365,
+            y: convertY(128, PAGE_HEIGHT),
             size: 12,
             font: fonts.readexRegular,
             color: rgb(0, 0, 0)
           });
 
-          // 2) Role - Rect: x=208, y=285, w=180, h=28 (CENTER)
+          // 2) Role - Rect: x=210, y=238, w=175, h=34 (CENTER)
           const roleText = (analysis.role || "").slice(0, 30);
           const roleWidth = fonts.khandSemibold.widthOfTextAtSize(roleText, 24);
-          const roleCenterX = 208 + (180 - roleWidth) / 2;
+          const roleCenterX = 210 + (175 - roleWidth) / 2;
           page1.drawText(roleText, {
             x: roleCenterX,
-            y: convertY(285, PAGE_HEIGHT),
+            y: convertY(238, PAGE_HEIGHT),
             size: 24,
             font: fonts.khandSemibold,
             color: rgb(0, 0, 0)
           });
 
-          // 3) Kód hry - Rect: x=420, y=318, w=150, h=16 (RIGHT align)
+          // 3) Kód hry - Rect: x=485, y=304, w=90, h=16 (RIGHT align)
           const gameCodeText = (analysis.gameCode || "").slice(0, 15);
           const gameCodeWidth = fonts.readexRegular.widthOfTextAtSize(gameCodeText, 8);
-          const gameCodeX = 420 + 150 - gameCodeWidth;
+          const gameCodeX = 485 + 90 - gameCodeWidth;
           page1.drawText(gameCodeText, {
             x: gameCodeX,
-            y: convertY(318, PAGE_HEIGHT),
+            y: convertY(304, PAGE_HEIGHT),
             size: 8,
             font: fonts.readexRegular,
             color: rgb(0, 0, 0)
           });
 
-          // 4) Silné stránky - 3 boxy (levý sloupec)
+          // 4) Silné stránky - 3 boxy (x=110, y=372/460/548, w=215, h=66)
           const strengthBoxes = [
-            { x: 110, y: 377, w: 205, h: 56 },
-            { x: 110, y: 452, w: 205, h: 56 },
-            { x: 110, y: 527, w: 205, h: 56 }
+            { x: 110, y: 372, w: 215, h: 66 },
+            { x: 110, y: 460, w: 215, h: 66 },
+            { x: 110, y: 548, w: 215, h: 66 }
           ];
 
           const strengths = (analysis.strengths || []).slice(0, 3);
           strengths.forEach((item: any, idx: number) => {
             const box = strengthBoxes[idx];
             const title = (item.title || "").slice(0, 30);
-            const description = item.description || "";
+            const text = (item.text || item.description || "").slice(0, 260);
             
             page1.drawText(title, {
               x: box.x,
@@ -216,7 +216,7 @@ export const PlayerAnalysisPreview = ({
             });
             
             const descLines = fitTextInBox(
-              description,
+              text,
               box.w,
               box.h - 12,
               fonts.readexRegular,
@@ -237,18 +237,18 @@ export const PlayerAnalysisPreview = ({
             });
           });
 
-          // 5) Slabé stránky - 3 boxy (pravý sloupec, užší)
+          // 5) Slabé stránky - 3 boxy (x=388, y=372/460/548, w=215, h=66)
           const weaknessBoxes = [
-            { x: 402, y: 377, w: 132, h: 56 },
-            { x: 402, y: 452, w: 132, h: 56 },
-            { x: 402, y: 527, w: 132, h: 56 }
+            { x: 388, y: 372, w: 215, h: 66 },
+            { x: 388, y: 460, w: 215, h: 66 },
+            { x: 388, y: 548, w: 215, h: 66 }
           ];
 
           const weaknesses = (analysis.weaknesses || []).slice(0, 3);
           weaknesses.forEach((item: any, idx: number) => {
             const box = weaknessBoxes[idx];
-            const title = (item.title || "").slice(0, 20);
-            const description = item.description || "";
+            const title = (item.title || "").slice(0, 30);
+            const text = (item.text || item.description || "").slice(0, 260);
             
             page1.drawText(title, {
               x: box.x,
@@ -259,7 +259,7 @@ export const PlayerAnalysisPreview = ({
             });
             
             const descLines = fitTextInBox(
-              description,
+              text,
               box.w,
               box.h - 12,
               fonts.readexRegular,
@@ -280,27 +280,27 @@ export const PlayerAnalysisPreview = ({
             });
           });
 
-          // 6) Dlouhá analýza (trust) - Rect: x=60, y=646, w=475, h=150
-          const trustText = analysis.trust || "";
-          const trustLines = fitTextInBox(
-            trustText,
+          // 6) Dlouhá analýza - Rect: x=60, y=640, w=475, h=120
+          const longAnalysisText = (analysis.longAnalysis || analysis.trust || "").slice(0, 1000);
+          const longAnalysisLines = fitTextInBox(
+            longAnalysisText,
             475,
-            150,
+            120,
             fonts.readexRegular,
             10,
             12
           );
 
-          let trustYPos = convertY(646, PAGE_HEIGHT);
-          trustLines.forEach(line => {
+          let longAnalysisYPos = convertY(640, PAGE_HEIGHT);
+          longAnalysisLines.forEach(line => {
             page1.drawText(line, {
               x: 60,
-              y: trustYPos,
+              y: longAnalysisYPos,
               size: 10,
               font: fonts.readexRegular,
               color: rgb(0, 0, 0)
             });
-            trustYPos -= 12;
+            longAnalysisYPos -= 12;
           });
 
         } catch (error) {
@@ -367,39 +367,39 @@ export const PlayerAnalysisPreview = ({
           const page2 = pdfDoc.getPage(pdfDoc.getPages().length - 1);
 
           // 7) Predikce osobnostních rysů - 3 sloupce
-          const traitColumns = [
-            { x: 60, y: 146, w: 150, h: 160 },
-            { x: 226, y: 146, w: 150, h: 160 },
-            { x: 392, y: 146, w: 150, h: 160 }
-          ];
-
-          const traits = (analysis.personalityTraits || []).slice(0, 3);
+          // Titulek: x=115/275/435, y=238
+          // Text: x=115/275/435, y=258, w=150, h=70
+          const traits = (analysis.traits || analysis.personalityTraits || []).slice(0, 3);
+          const traitXPositions = [115, 275, 435];
+          
           traits.forEach((trait: any, idx: number) => {
-            const col = traitColumns[idx];
+            const xPos = traitXPositions[idx];
             const title = (trait.title || "").slice(0, 20);
-            const description = (trait.description || "").slice(0, 160);
+            const text = (trait.text || trait.description || "").slice(0, 160);
             
+            // Titulek
             page2.drawText(title, {
-              x: col.x,
-              y: convertY(col.y, PAGE_HEIGHT),
+              x: xPos,
+              y: convertY(238, PAGE_HEIGHT),
               size: 12,
               font: fonts.khandSemibold,
               color: rgb(0, 0, 0)
             });
             
+            // Text
             const descLines = fitTextInBox(
-              description,
-              col.w,
-              col.h - 15,
+              text,
+              150,
+              70,
               fonts.readexRegular,
               8,
               10
             );
             
-            let yPos = convertY(col.y + 15, PAGE_HEIGHT);
+            let yPos = convertY(258, PAGE_HEIGHT);
             descLines.forEach(line => {
               page2.drawText(line, {
-                x: col.x,
+                x: xPos,
                 y: yPos,
                 size: 8,
                 font: fonts.readexRegular,
@@ -409,21 +409,21 @@ export const PlayerAnalysisPreview = ({
             });
           });
 
-          // 8) Doporučení pro spolupráci - Rect: x=60, y=388, w=475, h=90
-          const collabText = (analysis.collaboration || "").slice(0, 450);
+          // 8) Doporučení pro spolupráci - Rect: x=110, y=440, w=480, h=80
+          const collabText = (analysis.collaborationAdvice || analysis.collaboration || "").slice(0, 450);
           const collabLines = fitTextInBox(
             collabText,
-            475,
-            90,
+            480,
+            80,
             fonts.readexRegular,
             8,
             10
           );
 
-          let collabYPos = convertY(388, PAGE_HEIGHT);
+          let collabYPos = convertY(440, PAGE_HEIGHT);
           collabLines.forEach(line => {
             page2.drawText(line, {
-              x: 60,
+              x: 110,
               y: collabYPos,
               size: 8,
               font: fonts.readexRegular,
