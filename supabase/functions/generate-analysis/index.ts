@@ -266,9 +266,9 @@ Vrať JSON s klíči: role, strengths (array[3] objektů s title+description - d
                       type: "object",
                       properties: {
                         title: { type: "string", description: "Max 30 characters" },
-                        text: { type: "string", description: "Max 260 characters" }
+                        description: { type: "string", description: "Max 260 characters" }
                       },
-                      required: ["title", "text"],
+                      required: ["title", "description"],
                       additionalProperties: false
                     },
                     minItems: 3,
@@ -279,39 +279,39 @@ Vrať JSON s klíči: role, strengths (array[3] objektů s title+description - d
                     items: {
                       type: "object",
                       properties: {
-                        title: { type: "string", description: "Max 30 characters" },
-                        text: { type: "string", description: "Max 260 characters" }
+                        title: { type: "string", description: "Max 20 characters for right column" },
+                        description: { type: "string", description: "Max 260 characters" }
                       },
-                      required: ["title", "text"],
+                      required: ["title", "description"],
                       additionalProperties: false
                     },
                     minItems: 3,
                     maxItems: 3
                   },
-                  longAnalysis: {
+                  trust: {
                     type: "string",
-                    description: "Long analysis text about player's trust, 900-1000 characters"
+                    description: "Long text about player's trust, max 1000 characters"
                   },
-                  traits: {
+                  personalityTraits: {
                     type: "array",
                     items: {
                       type: "object",
                       properties: {
                         title: { type: "string", description: "Max 20 characters" },
-                        text: { type: "string", description: "Max 160 characters" }
+                        description: { type: "string", description: "Max 160 characters" }
                       },
-                      required: ["title", "text"],
+                      required: ["title", "description"],
                       additionalProperties: false
                     },
                     minItems: 3,
                     maxItems: 3
                   },
-                  collaborationAdvice: {
+                  collaboration: {
                     type: "string",
                     description: "Recommendations for team collaboration, max 450 characters"
                   }
                 },
-                required: ["role", "strengths", "weaknesses", "longAnalysis", "traits", "collaborationAdvice"],
+                required: ["role", "strengths", "weaknesses", "trust", "personalityTraits", "collaboration"],
                 additionalProperties: false
               }
             }
@@ -358,22 +358,22 @@ Vrať JSON s klíči: role, strengths (array[3] objektů s title+description - d
     // Validate and truncate AI output to fit exact character limits
     aiOutputJson.strengths = (aiOutputJson.strengths || []).slice(0, 3).map((s: any) => ({
       title: (s.title || "").slice(0, 30),
-      text: (s.text || s.description || "").slice(0, 260)
+      description: (s.description || "").slice(0, 260)
     }));
 
     aiOutputJson.weaknesses = (aiOutputJson.weaknesses || []).slice(0, 3).map((w: any) => ({
-      title: (w.title || "").slice(0, 30),
-      text: (w.text || w.description || "").slice(0, 260)
+      title: (w.title || "").slice(0, 20),
+      description: (w.description || "").slice(0, 260)
     }));
 
-    aiOutputJson.longAnalysis = (aiOutputJson.longAnalysis || aiOutputJson.trust || "").slice(0, 1000);
+    aiOutputJson.trust = (aiOutputJson.trust || "").slice(0, 1000);
 
-    aiOutputJson.traits = (aiOutputJson.traits || aiOutputJson.personalityTraits || []).slice(0, 3).map((t: any) => ({
+    aiOutputJson.personalityTraits = (aiOutputJson.personalityTraits || []).slice(0, 3).map((t: any) => ({
       title: (t.title || "").slice(0, 20),
-      text: (t.text || t.description || "").slice(0, 160)
+      description: (t.description || "").slice(0, 160)
     }));
 
-    aiOutputJson.collaborationAdvice = (aiOutputJson.collaborationAdvice || aiOutputJson.collaboration || "").slice(0, 450);
+    aiOutputJson.collaboration = (aiOutputJson.collaboration || "").slice(0, 450);
 
     // Add dynamic data to AI output
     aiOutputJson.code = player.session.code || "N/A";
@@ -381,7 +381,7 @@ Vrať JSON s klíči: role, strengths (array[3] objektů s title+description - d
     aiOutputJson.gameCode = player.session.code || "N/A";
 
     // Validate required keys
-    const requiredKeys = ["role", "strengths", "weaknesses", "longAnalysis", "traits", "collaborationAdvice"];
+    const requiredKeys = ["role", "strengths", "weaknesses", "trust", "personalityTraits", "collaboration"];
     const missingKeys = requiredKeys.filter((key: string) => !(key in aiOutputJson));
     if (missingKeys.length > 0) {
       console.error("Chybějící klíče:", missingKeys);

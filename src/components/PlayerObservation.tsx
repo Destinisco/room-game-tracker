@@ -59,10 +59,6 @@ interface Player {
   consent: boolean;
 }
 
-interface Room {
-  band_colors: string[] | null;
-}
-
 interface PlayerObservationProps {
   playerId: string;
   roomId: string;
@@ -86,7 +82,6 @@ export const PlayerObservation = ({ playerId, roomId }: PlayerObservationProps) 
   const [analysis, setAnalysis] = useState<any>(null);
   const [template, setTemplate] = useState<any>(null);
   const [editingPlayer, setEditingPlayer] = useState(false);
-  const [room, setRoom] = useState<Room | null>(null);
   const [playerEdits, setPlayerEdits] = useState({
     first_name: "",
     last_name: "",
@@ -120,15 +115,14 @@ export const PlayerObservation = ({ playerId, roomId }: PlayerObservationProps) 
         // Admins can always edit, regardless of consent
         setConsentBlocked(!isAdmin && !playerData.consent);
 
-        // First get room to find room_type_id and band_colors
+        // First get room to find room_type_id
         const { data: roomData, error: roomError } = await supabase
           .from("rooms")
-          .select("room_type_id, band_colors")
+          .select("room_type_id")
           .eq("id", roomId)
           .single();
 
         if (roomError) throw roomError;
-        setRoom(roomData);
 
         // Then fetch roles using room_type_id
         if (roomData?.room_type_id) {
@@ -493,8 +487,8 @@ export const PlayerObservation = ({ playerId, roomId }: PlayerObservationProps) 
                         <SelectTrigger>
                           <SelectValue placeholder="Vyberte barvu pásku" />
                         </SelectTrigger>
-                        <SelectContent className="max-h-[300px]">
-                          {((room?.band_colors && room.band_colors.length > 0) ? room.band_colors : PREDEFINED_COLORS).map((color) => (
+                        <SelectContent>
+                          {PREDEFINED_COLORS.map((color) => (
                             <SelectItem key={color} value={color}>
                               {color}
                             </SelectItem>
