@@ -39,6 +39,14 @@ export const PlayerAnalysisPreview = ({
   const [layoutMode, setLayoutMode] = useState(false);
   const pdfContainerRef = useRef<HTMLDivElement>(null);
 
+  // Debug log
+  console.log('📊 PlayerAnalysisPreview props:', {
+    template,
+    backgroundFrontUrl: template.backgroundFrontUrl,
+    backgroundBackUrl: template.backgroundBackUrl,
+    layoutConfig: template.layout_config,
+  });
+
   const TemplateComponent = getPdfTemplate(template.pdfTemplateComponent);
 
   type Fonts = {
@@ -72,9 +80,12 @@ export const PlayerAnalysisPreview = ({
       console.log('Fonts loaded');
 
       // Load Page 1 template as vector PDF
+      console.log('🔄 Načítám pozadí přední strany:', template.backgroundFrontUrl);
       if (template.backgroundFrontUrl) {
         try {
           const frontResponse = await fetch(template.backgroundFrontUrl);
+          
+          console.log('📥 Response status:', frontResponse.status, frontResponse.statusText);
           
           if (!frontResponse.ok) {
             throw new Error(`Failed to fetch front template: ${frontResponse.statusText}`);
@@ -311,9 +322,12 @@ export const PlayerAnalysisPreview = ({
       }
 
       // Load Page 2 template as vector PDF
+      console.log('🔄 Načítám pozadí zadní strany:', template.backgroundBackUrl);
       if (template.backgroundBackUrl) {
         try {
           const backResponse = await fetch(template.backgroundBackUrl);
+          
+          console.log('📥 Response status:', backResponse.status, backResponse.statusText);
           
           if (!backResponse.ok) {
             throw new Error(`Failed to fetch back template: ${backResponse.statusText}`);

@@ -79,6 +79,10 @@ export const AnalysisTemplateTab = ({ roomTypeId, pdfTemplateComponent }: Analys
       if (error) throw error;
 
       if (data) {
+        console.log('📄 Načtená šablona:', data);
+        console.log('🖼️ Front URL:', data.background_front_url);
+        console.log('🖼️ Back URL:', data.background_back_url);
+        
         setTemplate(data);
         setFormData({
           name: data.name,
@@ -321,19 +325,28 @@ export const AnalysisTemplateTab = ({ roomTypeId, pdfTemplateComponent }: Analys
                 className="flex-1"
               />
               {formData.backgroundFrontUrl ? (
-                <div className="flex gap-2 items-center">
-                  <a
-                    href={formData.backgroundFrontUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block w-[150px] h-[212px] border-2 border-primary rounded overflow-hidden hover:opacity-80 transition-opacity bg-muted"
-                  >
-                    <iframe
-                      src={`${formData.backgroundFrontUrl}#view=FitH`}
-                      className="w-full h-full pointer-events-none"
-                      title="Náhled přední strany PDF"
-                    />
-                  </a>
+                <div className="flex flex-col gap-2">
+                  <div className="w-[150px] h-[212px] border-2 border-primary rounded overflow-hidden bg-muted relative">
+                    <object
+                      data={formData.backgroundFrontUrl}
+                      type="application/pdf"
+                      className="w-full h-full"
+                    >
+                      <iframe
+                        src={`${formData.backgroundFrontUrl}#view=FitH&toolbar=0`}
+                        className="w-full h-full border-0"
+                        title="Náhled přední strany PDF"
+                      />
+                    </object>
+                    <a
+                      href={formData.backgroundFrontUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="absolute bottom-1 right-1 text-xs bg-primary text-primary-foreground px-2 py-1 rounded hover:opacity-80"
+                    >
+                      Otevřít
+                    </a>
+                  </div>
                   <span className="text-xs text-green-600 font-medium">✓ Nahrán</span>
                 </div>
               ) : (
@@ -360,19 +373,28 @@ export const AnalysisTemplateTab = ({ roomTypeId, pdfTemplateComponent }: Analys
                 className="flex-1"
               />
               {formData.backgroundBackUrl ? (
-                <div className="flex gap-2 items-center">
-                  <a
-                    href={formData.backgroundBackUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block w-[150px] h-[212px] border-2 border-primary rounded overflow-hidden hover:opacity-80 transition-opacity bg-muted"
-                  >
-                    <iframe
-                      src={`${formData.backgroundBackUrl}#view=FitH`}
-                      className="w-full h-full pointer-events-none"
-                      title="Náhled zadní strany PDF"
-                    />
-                  </a>
+                <div className="flex flex-col gap-2">
+                  <div className="w-[150px] h-[212px] border-2 border-primary rounded overflow-hidden bg-muted relative">
+                    <object
+                      data={formData.backgroundBackUrl}
+                      type="application/pdf"
+                      className="w-full h-full"
+                    >
+                      <iframe
+                        src={`${formData.backgroundBackUrl}#view=FitH&toolbar=0`}
+                        className="w-full h-full border-0"
+                        title="Náhled zadní strany PDF"
+                      />
+                    </object>
+                    <a
+                      href={formData.backgroundBackUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="absolute bottom-1 right-1 text-xs bg-primary text-primary-foreground px-2 py-1 rounded hover:opacity-80"
+                    >
+                      Otevřít
+                    </a>
+                  </div>
                   <span className="text-xs text-green-600 font-medium">✓ Nahrán</span>
                 </div>
               ) : (

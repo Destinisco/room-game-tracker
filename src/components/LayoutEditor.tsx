@@ -445,11 +445,21 @@ export const LayoutEditor = ({ onClose, backgroundFrontUrl, backgroundBackUrl, i
               onMouseLeave={handleMouseUp}
             >
               {backgroundFrontUrl && (
-                <img
-                  src={backgroundFrontUrl}
-                  alt="Page 1 Background"
-                  className="absolute inset-0 w-full h-full object-fill pointer-events-none"
-                />
+                <div className="absolute inset-0 w-full h-full pointer-events-none">
+                  {backgroundFrontUrl.toLowerCase().endsWith('.pdf') ? (
+                    <iframe
+                      src={`${backgroundFrontUrl}#view=FitH&toolbar=0&navpanes=0&scrollbar=0`}
+                      className="w-full h-full border-0"
+                      title="Page 1 Background PDF"
+                    />
+                  ) : (
+                    <img
+                      src={backgroundFrontUrl}
+                      alt="Page 1 Background"
+                      className="w-full h-full object-fill"
+                    />
+                  )}
+                </div>
               )}
 
               {boxes
@@ -503,11 +513,21 @@ export const LayoutEditor = ({ onClose, backgroundFrontUrl, backgroundBackUrl, i
           <div className="relative bg-white" style={{ width: "100%", aspectRatio: "1/1.414" }}>
             <div className="relative w-full h-full" onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}>
               {backgroundBackUrl && (
-                <img
-                  src={backgroundBackUrl}
-                  alt="Page 2 Background"
-                  className="absolute inset-0 w-full h-full object-fill pointer-events-none"
-                />
+                <div className="absolute inset-0 w-full h-full pointer-events-none">
+                  {backgroundBackUrl.toLowerCase().endsWith('.pdf') ? (
+                    <iframe
+                      src={`${backgroundBackUrl}#view=FitH&toolbar=0&navpanes=0&scrollbar=0`}
+                      className="w-full h-full border-0"
+                      title="Page 2 Background PDF"
+                    />
+                  ) : (
+                    <img
+                      src={backgroundBackUrl}
+                      alt="Page 2 Background"
+                      className="w-full h-full object-fill"
+                    />
+                  )}
+                </div>
               )}
 
               {boxes
