@@ -24,6 +24,8 @@ interface DraggableBox {
   page: 1 | 2;
 }
 
+type ResizeHandle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
+
 export const LayoutEditor = ({ onClose, backgroundFrontUrl, backgroundBackUrl, initialLayoutConfig, onSave }: LayoutEditorProps) => {
   const { toast } = useToast();
   const [layoutConfig, setLayoutConfig] = useState<LayoutConfig>(
@@ -32,6 +34,8 @@ export const LayoutEditor = ({ onClose, backgroundFrontUrl, backgroundBackUrl, i
   const [boxes, setBoxes] = useState<DraggableBox[]>([]);
   const [selectedBox, setSelectedBox] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const [resizeHandle, setResizeHandle] = useState<ResizeHandle | null>(null);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -243,6 +247,44 @@ export const LayoutEditor = ({ onClose, backgroundFrontUrl, backgroundBackUrl, i
     });
   };
 
+  const updateBoxSize = (boxId: string, dw: number, dh: number) => {
+    setBoxes((prev) =>
+      prev.map((box) =>
+        box.id === boxId
+          ? { ...box, w: Math.max(50, box.w + dw), h: Math.max(20, box.h + dh) }
+          : box
+      )
+    );
+
+    // Update layout config
+    setLayoutConfig((prev) => {
+      const newConfig = JSON.parse(JSON.stringify(prev));
+      const parts = boxId.split(".");
+      const page = parts[0] as "page1" | "page2";
+      const field = parts[1];
+
+      if (field === "color" || field === "role" || field === "gameCode") {
+        if (newConfig[page][field].box) {
+          newConfig[page][field].box.w = Math.max(50, newConfig[page][field].box.w + dw);
+          newConfig[page][field].box.h = Math.max(20, newConfig[page][field].box.h + dh);
+        }
+      } else if (field === "longAnalysis" || field === "collaboration") {
+        newConfig[page][field].w = Math.max(50, newConfig[page][field].w + dw);
+        newConfig[page][field].h = Math.max(20, newConfig[page][field].h + dh);
+      } else if (field === "strengths" || field === "weaknesses" || field === "traits") {
+        const match = parts[1].match(/(strengths|weaknesses|traits)\[(\d+)\]/);
+        if (match) {
+          const arrayField = match[1] as "strengths" | "weaknesses" | "traits";
+          const index = parseInt(match[2]);
+          const subField = parts[2] as "title" | "body";
+          newConfig[page][arrayField][index][subField].w = Math.max(50, newConfig[page][arrayField][index][subField].w + dw);
+        }
+      }
+
+      return newConfig;
+    });
+  };
+
   const handleMouseDown = (e: React.MouseEvent, boxId: string) => {
     e.preventDefault();
     setSelectedBox(boxId);
@@ -250,21 +292,86 @@ export const LayoutEditor = ({ onClose, backgroundFrontUrl, backgroundBackUrl, i
     setDragStart({ x: e.clientX, y: e.clientY });
   };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !selectedBox || !containerRef.current) return;
+  const handleResizeStart = (e: React.MouseEvent, boxId: string, handle: ResizeHandle) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedBox(boxId);
+    setIsResizing(true);
+    setResizeHandle(handle);
+    setDragStart({ x: e.clientX, y: e.clientY });
+  };
 
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!selectedBox || !containerRef.current) return;
+    
     const rect = containerRef.current.getBoundingClientRect();
     const scale = rect.width / layoutConfig.pageSize.w;
 
-    const dx = (e.clientX - dragStart.x) / scale;
-    const dy = -(e.clientY - dragStart.y) / scale; // Invert Y for PDF coords
+    if (isDragging) {
+      const dx = (e.clientX - dragStart.x) / scale;
+      const dy = -(e.clientY - dragStart.y) / scale; // Invert Y for PDF coords
 
-    updateBoxPosition(selectedBox, dx, dy);
-    setDragStart({ x: e.clientX, y: e.clientY });
+      updateBoxPosition(selectedBox, dx, dy);
+      setDragStart({ x: e.clientX, y: e.clientY });
+    } else if (isResizing && resizeHandle) {
+      const dx = (e.clientX - dragStart.x) / scale;
+      const dy = -(e.clientY - dragStart.y) / scale; // Invert Y for PDF coords
+
+      let dw = 0;
+      let dh = 0;
+      let posX = 0;
+      let posY = 0;
+
+      // Calculate size and position changes based on handle
+      switch (resizeHandle) {
+        case 'e':
+          dw = dx;
+          break;
+        case 'w':
+          dw = -dx;
+          posX = dx;
+          break;
+        case 's':
+          dh = -dy;
+          break;
+        case 'n':
+          dh = dy;
+          posY = dy;
+          break;
+        case 'se':
+          dw = dx;
+          dh = -dy;
+          break;
+        case 'sw':
+          dw = -dx;
+          dh = -dy;
+          posX = dx;
+          break;
+        case 'ne':
+          dw = dx;
+          dh = dy;
+          posY = dy;
+          break;
+        case 'nw':
+          dw = -dx;
+          dh = dy;
+          posX = dx;
+          posY = dy;
+          break;
+      }
+
+      if (posX !== 0 || posY !== 0) {
+        updateBoxPosition(selectedBox, posX, posY);
+      }
+      updateBoxSize(selectedBox, dw, dh);
+      setDragStart({ x: e.clientX, y: e.clientY });
+    }
   };
 
   const handleMouseUp = () => {
     setIsDragging(false);
+    setIsResizing(false);
+    setResizeHandle(null);
   };
 
   const handleSave = () => {
@@ -349,11 +456,12 @@ export const LayoutEditor = ({ onClose, backgroundFrontUrl, backgroundBackUrl, i
                 .filter((box) => box.page === 1)
                 .map((box) => {
                   const style = pdfToScreen(box, containerRef.current?.offsetWidth || layoutConfig.pageSize.w);
+                  const isSelected = selectedBox === box.id;
                   return (
                     <div
                       key={box.id}
-                      className={`absolute border-2 cursor-move transition-colors ${
-                        selectedBox === box.id
+                      className={`absolute border-2 transition-colors ${
+                        isSelected
                           ? "border-primary bg-primary/10"
                           : "border-blue-400 bg-blue-400/10"
                       }`}
@@ -363,11 +471,28 @@ export const LayoutEditor = ({ onClose, backgroundFrontUrl, backgroundBackUrl, i
                         width: style.width,
                         height: style.height,
                       }}
-                      onMouseDown={(e) => handleMouseDown(e, box.id)}
                     >
-                      <span className="absolute -top-6 left-0 text-xs bg-primary text-primary-foreground px-1 rounded whitespace-nowrap">
+                      <div
+                        className="absolute inset-0 cursor-move"
+                        onMouseDown={(e) => handleMouseDown(e, box.id)}
+                      />
+                      <span className="absolute -top-6 left-0 text-xs bg-primary text-primary-foreground px-1 rounded whitespace-nowrap pointer-events-none">
                         {box.label}
                       </span>
+                      {isSelected && (
+                        <>
+                          {/* Corner handles */}
+                          <div className="absolute -top-1 -left-1 w-3 h-3 bg-primary border border-background cursor-nw-resize" onMouseDown={(e) => handleResizeStart(e, box.id, 'nw')} />
+                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary border border-background cursor-ne-resize" onMouseDown={(e) => handleResizeStart(e, box.id, 'ne')} />
+                          <div className="absolute -bottom-1 -left-1 w-3 h-3 bg-primary border border-background cursor-sw-resize" onMouseDown={(e) => handleResizeStart(e, box.id, 'sw')} />
+                          <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-primary border border-background cursor-se-resize" onMouseDown={(e) => handleResizeStart(e, box.id, 'se')} />
+                          {/* Edge handles */}
+                          <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-primary border border-background cursor-n-resize" onMouseDown={(e) => handleResizeStart(e, box.id, 'n')} />
+                          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-primary border border-background cursor-s-resize" onMouseDown={(e) => handleResizeStart(e, box.id, 's')} />
+                          <div className="absolute top-1/2 -translate-y-1/2 -left-1 w-3 h-3 bg-primary border border-background cursor-w-resize" onMouseDown={(e) => handleResizeStart(e, box.id, 'w')} />
+                          <div className="absolute top-1/2 -translate-y-1/2 -right-1 w-3 h-3 bg-primary border border-background cursor-e-resize" onMouseDown={(e) => handleResizeStart(e, box.id, 'e')} />
+                        </>
+                      )}
                     </div>
                   );
                 })}
@@ -389,11 +514,12 @@ export const LayoutEditor = ({ onClose, backgroundFrontUrl, backgroundBackUrl, i
                 .filter((box) => box.page === 2)
                 .map((box) => {
                   const style = pdfToScreen(box, containerRef.current?.offsetWidth || layoutConfig.pageSize.w);
+                  const isSelected = selectedBox === box.id;
                   return (
                     <div
                       key={box.id}
-                      className={`absolute border-2 cursor-move transition-colors ${
-                        selectedBox === box.id
+                      className={`absolute border-2 transition-colors ${
+                        isSelected
                           ? "border-primary bg-primary/10"
                           : "border-blue-400 bg-blue-400/10"
                       }`}
@@ -403,11 +529,28 @@ export const LayoutEditor = ({ onClose, backgroundFrontUrl, backgroundBackUrl, i
                         width: style.width,
                         height: style.height,
                       }}
-                      onMouseDown={(e) => handleMouseDown(e, box.id)}
                     >
-                      <span className="absolute -top-6 left-0 text-xs bg-primary text-primary-foreground px-1 rounded whitespace-nowrap">
+                      <div
+                        className="absolute inset-0 cursor-move"
+                        onMouseDown={(e) => handleMouseDown(e, box.id)}
+                      />
+                      <span className="absolute -top-6 left-0 text-xs bg-primary text-primary-foreground px-1 rounded whitespace-nowrap pointer-events-none">
                         {box.label}
                       </span>
+                      {isSelected && (
+                        <>
+                          {/* Corner handles */}
+                          <div className="absolute -top-1 -left-1 w-3 h-3 bg-primary border border-background cursor-nw-resize" onMouseDown={(e) => handleResizeStart(e, box.id, 'nw')} />
+                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary border border-background cursor-ne-resize" onMouseDown={(e) => handleResizeStart(e, box.id, 'ne')} />
+                          <div className="absolute -bottom-1 -left-1 w-3 h-3 bg-primary border border-background cursor-sw-resize" onMouseDown={(e) => handleResizeStart(e, box.id, 'sw')} />
+                          <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-primary border border-background cursor-se-resize" onMouseDown={(e) => handleResizeStart(e, box.id, 'se')} />
+                          {/* Edge handles */}
+                          <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-primary border border-background cursor-n-resize" onMouseDown={(e) => handleResizeStart(e, box.id, 'n')} />
+                          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-primary border border-background cursor-s-resize" onMouseDown={(e) => handleResizeStart(e, box.id, 's')} />
+                          <div className="absolute top-1/2 -translate-y-1/2 -left-1 w-3 h-3 bg-primary border border-background cursor-w-resize" onMouseDown={(e) => handleResizeStart(e, box.id, 'w')} />
+                          <div className="absolute top-1/2 -translate-y-1/2 -right-1 w-3 h-3 bg-primary border border-background cursor-e-resize" onMouseDown={(e) => handleResizeStart(e, box.id, 'e')} />
+                        </>
+                      )}
                     </div>
                   );
                 })}
