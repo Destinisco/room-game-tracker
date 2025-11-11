@@ -112,16 +112,40 @@ export const AnalysisTemplateTab = ({ roomTypeId, pdfTemplateComponent }: Analys
         .from('pdf-backgrounds')
         .getPublicUrl(filePath);
 
-      if (side === 'front') {
-        setFormData({ ...formData, backgroundFrontUrl: publicUrl });
-      } else {
-        setFormData({ ...formData, backgroundBackUrl: publicUrl });
-      }
+      const newFormData = {
+        ...formData,
+        backgroundFrontUrl: side === 'front' ? publicUrl : formData.backgroundFrontUrl,
+        backgroundBackUrl: side === 'back' ? publicUrl : formData.backgroundBackUrl,
+      };
+      
+      setFormData(newFormData);
 
-      toast({
-        title: "Nahráno",
-        description: `PDF pozadí (${side === 'front' ? 'přední' : 'zadní'} strana) bylo úspěšně nahráno`,
-      });
+      // Auto-save to database after upload
+      if (template) {
+        const { error: updateError } = await supabase
+          .from("analysis_templates")
+          .update({
+            background_front_url: newFormData.backgroundFrontUrl || null,
+            background_back_url: newFormData.backgroundBackUrl || null,
+            version: template.version + 1,
+          })
+          .eq("id", template.id);
+
+        if (updateError) throw updateError;
+
+        toast({
+          title: "Uloženo",
+          description: `PDF pozadí (${side === 'front' ? 'přední' : 'zadní'} strana) bylo úspěšně nahráno a uloženo`,
+        });
+
+        // Reload template to get fresh data
+        await fetchTemplate();
+      } else {
+        toast({
+          title: "Nahráno",
+          description: `PDF pozadí (${side === 'front' ? 'přední' : 'zadní'} strana) bylo nahráno. Klikněte na "Uložit šablonu" pro dokončení.`,
+        });
+      }
     } catch (error) {
       console.error("Error uploading image:", error);
       toast({
@@ -302,18 +326,15 @@ export const AnalysisTemplateTab = ({ roomTypeId, pdfTemplateComponent }: Analys
                     href={formData.backgroundFrontUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block w-[150px] h-[150px] border border-border rounded overflow-hidden hover:opacity-80 transition-opacity"
+                    className="block w-[150px] h-[212px] border-2 border-primary rounded overflow-hidden hover:opacity-80 transition-opacity bg-muted"
                   >
-                    <object
-                      data={formData.backgroundFrontUrl}
-                      type="application/pdf"
+                    <iframe
+                      src={`${formData.backgroundFrontUrl}#view=FitH`}
                       className="w-full h-full pointer-events-none"
-                    >
-                      <div className="flex items-center justify-center h-full text-xs text-muted-foreground p-2 text-center">
-                        PDF nahrán
-                      </div>
-                    </object>
+                      title="Náhled přední strany PDF"
+                    />
                   </a>
+                  <span className="text-xs text-green-600 font-medium">✓ Nahrán</span>
                 </div>
               ) : (
                 <div className="text-xs text-muted-foreground w-[150px]">Soubor nevybrán</div>
@@ -344,18 +365,15 @@ export const AnalysisTemplateTab = ({ roomTypeId, pdfTemplateComponent }: Analys
                     href={formData.backgroundBackUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block w-[150px] h-[150px] border border-border rounded overflow-hidden hover:opacity-80 transition-opacity"
+                    className="block w-[150px] h-[212px] border-2 border-primary rounded overflow-hidden hover:opacity-80 transition-opacity bg-muted"
                   >
-                    <object
-                      data={formData.backgroundBackUrl}
-                      type="application/pdf"
+                    <iframe
+                      src={`${formData.backgroundBackUrl}#view=FitH`}
                       className="w-full h-full pointer-events-none"
-                    >
-                      <div className="flex items-center justify-center h-full text-xs text-muted-foreground p-2 text-center">
-                        PDF nahrán
-                      </div>
-                    </object>
+                      title="Náhled zadní strany PDF"
+                    />
                   </a>
+                  <span className="text-xs text-green-600 font-medium">✓ Nahrán</span>
                 </div>
               ) : (
                 <div className="text-xs text-muted-foreground w-[150px]">Soubor nevybrán</div>
