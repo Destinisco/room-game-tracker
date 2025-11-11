@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { getPdfTemplate } from "@/components/pdf-templates";
 import { PDFDocument, rgb, PDFFont } from "pdf-lib";
+import fontkit from "@pdf-lib/fontkit";
 import layoutConfig from "@/config/layout.json";
 import {
   smartTrim,
@@ -51,6 +52,10 @@ export const PlayerAnalysisPreview = ({
       // Use room-specific layout config if available, otherwise fall back to default
       const activeLayoutConfig = template.layout_config || layoutConfig;
       const pdfDoc = await PDFDocument.create();
+      
+      // Register fontkit for custom fonts
+      pdfDoc.registerFontkit(fontkit);
+      
       const { w: PAGE_WIDTH, h: PAGE_HEIGHT } = activeLayoutConfig.pageSize;
 
       // Load custom fonts
