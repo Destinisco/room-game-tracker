@@ -442,7 +442,35 @@ const SessionDetail = () => {
 
   const handleViewAnalysis = async (playerId: string) => {
     const analysis = analyses.find(a => a.player_id === playerId);
-    if (!analysis || !currentTemplate) return;
+
+    if (!analysis) {
+      console.error('❌ Analysis not found for player:', playerId);
+      toast({
+        title: "Chyba",
+        description: "Analýza pro tohoto hráče nebyla nalezena",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!currentTemplate) {
+      console.error('❌ Template not loaded');
+      toast({
+        title: "Chyba",
+        description: "PDF šablona nebyla nalezena. Vytvořte šablonu v nastavení místnosti.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    console.log('✅ Loading analysis preview:', {
+      playerId,
+      analysisVersion: analysis.ai_version,
+      templateVersion: currentTemplate.version,
+      hasLayoutConfig: !!currentTemplate.layout_config,
+      hasFrontBackground: !!currentTemplate.background_front_url,
+      hasBackBackground: !!currentTemplate.background_back_url,
+    });
 
     const player = players.find(p => p.id === playerId);
 
@@ -454,6 +482,7 @@ const SessionDetail = () => {
         name: currentTemplate.name,
         backgroundFrontUrl: currentTemplate.background_front_url,
         backgroundBackUrl: currentTemplate.background_back_url,
+        layout_config: currentTemplate.layout_config,
         version: currentTemplate.version,
         pdfTemplateComponent: currentTemplate.room_type?.pdf_template_component || 'DefaultTemplate',
       },
