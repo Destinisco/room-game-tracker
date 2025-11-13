@@ -188,41 +188,65 @@ serve(async (req) => {
     const selectedLanguage = languageMap[playerData.language] || languageMap.cs;
 
     // Build system prompt with language instruction and ENFORCE role selection
-    const systemPrompt = `Jsi expert na psychologickou analýzu a hodnocení týmové spolupráce v únikových hrách.
+    const systemPrompt = `Jsi expert na psychologickou analýzu výkonnosti hráčů v únikových místnostech. Tvým úkolem je vytvořit profesionální, pozitivní a rozvíjející zpětnou vazbu založenou na pozorování chování během hry.
+
+KONTEXT: Únikovky jsou týmové aktivity zaměřené na řešení hádanek pod časovým tlakem. Hráči projevují různé vzorce chování - někteří vedou tým, jiní detailně řeší hádanky, další propojují nápovědy. Každý styl přispívá k úspěchu týmu.
+
 ${aiBrief}
+
+TÓNEM A STYLEM:
+- Buď pozitivní, podporující a vývojově orientovaný
+- Silné stránky: Konkrétní příklady toho, co hráč dělal dobře
+- Oblasti k rozvoji: Konstruktivně, s návrhy na zlepšení (ne jako kritika)
+- Propoj pozorované chování s psychologickými významy z lexikonu
+- Používej konkrétní jazyk místo obecných frází
 
 DŮLEŽITÉ: ${selectedLanguage.instruction}
 
 ${roleName ? `KRITICKÉ: Hráč má PŘIŘAZENOU ROLI: "${roleName}". MUSÍŠ použít PŘESNĚ tuto roli v poli "role". Nesmíš použít žádnou jinou roli.` : `KRITICKÉ: Vyber roli POUZE z těchto dostupných rolí: ${rolesString}. NESMÍŠ vymýšlet žádné jiné role, které nejsou v tomto seznamu.`}
 
-Vždy vrať validní JSON s následujícími klíči:
+STRUKTURA VÝSTUPU (JSON):
 - role: ${roleName ? `MUSÍ BÝT PŘESNĚ: "${roleName}"` : `Jedna z těchto rolí: ${rolesString}`}
-- strengths: Pole 3 objektů s klíči "title" a "description" pro silné stránky
-- weaknesses: Pole 3 objektů s klíči "title" a "description" pro oblasti k rozvoji
-- trust: Dlouhý text (100-150 slov) o důvěře hráče v sebe, ostatní a příběh
-- personalityTraits: Pole 3 objektů s klíči "title" a "description" pro klíčové osobnostní rysy
-- collaboration: Krátký text (50-70 slov) s doporučeními pro budoucí spolupráci v týmu
+- strengths: Pole 3 objektů { "title": "Výstižný název", "text": "Detailní popis co hráč dělal dobře a proč je to cenné" }
+- weaknesses: Pole 3 objektů { "title": "Oblast rozvoje", "text": "Konstruktivní popis příležitosti ke zlepšení s konkrétními doporučeními" }
+- longAnalysis: Hlubší analýza (150-200 slov) o tom, jak hráč důvěřuje sobě, ostatním členům týmu a příběhu/zadání hry. Zmiň konkrétní pozorované chování.
+- traits: Pole 3 objektů { "title": "Název rysu", "text": "Popis osobnostního rysu projeveného během hry" }
+- collaborationAdvice: Text (100-120 slov) s praktickými doporučeními, jak může hráč zlepšit týmovou spolupráci v budoucích hrách nebo projektech.
 
-Formát pro strengths, weaknesses a personalityTraits:
-[
-  { "title": "Název vlastnosti", "description": "Velmi stručný popis (max 2-3 řádky, 30-40 slov)" },
-  ...
-]
+PŘÍKLAD KVALITNÍHO VÝSTUPU:
+Strengths title: "Strategické myšlení pod tlakem"
+Strengths text: "Během hry jste prokázal schopnost rychle vyhodnotit situaci a navrhnout postup řešení. Vaše organizované myšlení pomohlo týmu neztratit se v množství informací a soustředit se na klíčové hádanky. Tato dovednost je cenná nejen v únikovkách, ale i v náročných pracovních projektech."
 
-${selectedLanguage.instruction} Použij informace o zaškrtnutém chování a jejich psychologických významech.`;
+${selectedLanguage.instruction} Využij poskytnuté chování a jejich psychologické významy k vytvoření konkrétní, personalizované analýzy.`;
 
     // Build user prompt with behavior meanings
-    const userPrompt = `Analyzuj tohoto hráče:
+    const userPrompt = `Analyzuj tohoto hráče na základě pozorovaného chování:
 
+=== INFORMACE O HRÁČI ===
 ${JSON.stringify(playerData, null, 2)}
 
-Behavior Lexikon (psychologické významy):
+=== PSYCHOLOGICKÝ LEXIKON (jak interpretovat chování) ===
 ${JSON.stringify(behaviorLexicon, null, 2)}
 
-Zaškrtnuté chování s významy:
+=== POZOROVANÉ CHOVÁNÍ BĚHEM HRY ===
 ${JSON.stringify(behaviorContext, null, 2)}
 
-Vrať JSON s klíči: role, strengths (array[3] objektů s title+description - description max 2-3 řádky), weaknesses (array[3] objektů s title+description - description max 2-3 řádky), trust (dlouhý text 100-150 slov), personalityTraits (array[3] objektů s title+description - description max 2-3 řádky), collaboration (krátký text 50-70 slov).`;
+INSTRUKCE K ANALÝZE:
+1. Prozkoumej každé zaškrtnuté chování a jeho psychologický význam
+2. Identifikuj vzorce - opakující se styly jednání
+3. Propoj chování s konkrétními silnými stránkami (3x)
+4. Najdi konstruktivní oblasti k rozvoji (3x)
+5. Analyzuj důvěru: v sebe (sebevědomí), v ostatní (delegování, naslouchání), v zadání hry (následování příběhu)
+6. Identifikuj 3 klíčové osobnostní rysy projevené během hry
+7. Navrhni praktická doporučení pro budoucí týmovou spolupráci
+
+FORMÁT: Vrať JSON s těmito klíči:
+- role: text
+- strengths: pole 3 objektů {title, text}
+- weaknesses: pole 3 objektů {title, text}
+- longAnalysis: text o důvěře, 150-200 slov
+- traits: pole 3 objektů {title, text}
+- collaborationAdvice: text s doporučeními, 100-120 slov`;
 
     console.log("Volám Lovable AI...");
 
@@ -265,8 +289,8 @@ Vrať JSON s klíči: role, strengths (array[3] objektů s title+description - d
                     items: {
                       type: "object",
                       properties: {
-                        title: { type: "string", description: "Max 30 characters" },
-                        text: { type: "string", description: "Max 260 characters" }
+                        title: { type: "string", description: "Concise title for the strength, max 40 characters" },
+                        text: { type: "string", description: "Detailed description with specific examples, max 400 characters" }
                       },
                       required: ["title", "text"],
                       additionalProperties: false
@@ -279,8 +303,8 @@ Vrať JSON s klíči: role, strengths (array[3] objektů s title+description - d
                     items: {
                       type: "object",
                       properties: {
-                        title: { type: "string", description: "Max 30 characters" },
-                        text: { type: "string", description: "Max 260 characters" }
+                        title: { type: "string", description: "Constructive title for area of development, max 40 characters" },
+                        text: { type: "string", description: "Constructive description with specific suggestions for improvement, max 400 characters" }
                       },
                       required: ["title", "text"],
                       additionalProperties: false
@@ -290,15 +314,15 @@ Vrať JSON s klíči: role, strengths (array[3] objektů s title+description - d
                   },
                   longAnalysis: {
                     type: "string",
-                    description: "Long analysis text about player's trust, 900-1000 characters"
+                    description: "Deep analysis of player's trust (in self, others, and game narrative), 1200-1500 characters with specific behavioral examples"
                   },
                   traits: {
                     type: "array",
                     items: {
                       type: "object",
                       properties: {
-                        title: { type: "string", description: "Max 20 characters" },
-                        text: { type: "string", description: "Max 160 characters" }
+                        title: { type: "string", description: "Personality trait name, max 30 characters" },
+                        text: { type: "string", description: "Description of how this trait manifested during the game, max 250 characters" }
                       },
                       required: ["title", "text"],
                       additionalProperties: false
@@ -308,7 +332,7 @@ Vrať JSON s klíči: role, strengths (array[3] objektů s title+description - d
                   },
                   collaborationAdvice: {
                     type: "string",
-                    description: "Recommendations for team collaboration, max 450 characters"
+                    description: "Practical recommendations for future team collaboration, 700-900 characters with actionable suggestions"
                   }
                 },
                 required: ["role", "strengths", "weaknesses", "longAnalysis", "traits", "collaborationAdvice"],
@@ -357,23 +381,23 @@ Vrať JSON s klíči: role, strengths (array[3] objektů s title+description - d
 
     // Validate and truncate AI output to fit exact character limits
     aiOutputJson.strengths = (aiOutputJson.strengths || []).slice(0, 3).map((s: any) => ({
-      title: (s.title || "").slice(0, 30),
-      text: (s.text || s.description || "").slice(0, 260)
+      title: (s.title || "").slice(0, 40),
+      text: (s.text || s.description || "").slice(0, 400)
     }));
 
     aiOutputJson.weaknesses = (aiOutputJson.weaknesses || []).slice(0, 3).map((w: any) => ({
-      title: (w.title || "").slice(0, 30),
-      text: (w.text || w.description || "").slice(0, 260)
+      title: (w.title || "").slice(0, 40),
+      text: (w.text || w.description || "").slice(0, 400)
     }));
 
-    aiOutputJson.longAnalysis = (aiOutputJson.longAnalysis || aiOutputJson.trust || "").slice(0, 1000);
+    aiOutputJson.longAnalysis = (aiOutputJson.longAnalysis || aiOutputJson.trust || "").slice(0, 1500);
 
     aiOutputJson.traits = (aiOutputJson.traits || aiOutputJson.personalityTraits || []).slice(0, 3).map((t: any) => ({
-      title: (t.title || "").slice(0, 20),
-      text: (t.text || t.description || "").slice(0, 160)
+      title: (t.title || "").slice(0, 30),
+      text: (t.text || t.description || "").slice(0, 250)
     }));
 
-    aiOutputJson.collaborationAdvice = (aiOutputJson.collaborationAdvice || aiOutputJson.collaboration || "").slice(0, 450);
+    aiOutputJson.collaborationAdvice = (aiOutputJson.collaborationAdvice || aiOutputJson.collaboration || "").slice(0, 900);
 
     // Add dynamic data to AI output
     aiOutputJson.code = player.session.code || "N/A";

@@ -24,30 +24,30 @@
     },
     "strengths": [
       {
-        "title": { "font": "Readex", "size": 10, "x": 120, "y": 468, "w": 215 },
-        "body": { "font": "Readex", "size": 8, "x": 120, "y": 455, "w": 215, "maxChars": 260 }
+        "title": { "font": "Readex", "size": 10, "x": 120, "y": 468, "w": 215, "maxChars": 40 },
+        "body": { "font": "Readex", "size": 8, "x": 120, "y": 455, "w": 215, "maxChars": 400 }
       },
       {
-        "title": { "font": "Readex", "size": 10, "x": 120, "y": 394, "w": 215 },
-        "body": { "font": "Readex", "size": 8, "x": 120, "y": 381, "w": 215, "maxChars": 260 }
+        "title": { "font": "Readex", "size": 10, "x": 120, "y": 394, "w": 215, "maxChars": 40 },
+        "body": { "font": "Readex", "size": 8, "x": 120, "y": 381, "w": 215, "maxChars": 400 }
       },
       {
-        "title": { "font": "Readex", "size": 10, "x": 120, "y": 321, "w": 215 },
-        "body": { "font": "Readex", "size": 8, "x": 120, "y": 308, "w": 215, "maxChars": 260 }
+        "title": { "font": "Readex", "size": 10, "x": 120, "y": 321, "w": 215, "maxChars": 40 },
+        "body": { "font": "Readex", "size": 8, "x": 120, "y": 308, "w": 215, "maxChars": 400 }
       }
     ],
     "weaknesses": [
       {
-        "title": { "font": "Readex", "size": 10, "x": 355, "y": 468, "w": 215 },
-        "body": { "font": "Readex", "size": 8, "x": 355, "y": 455, "w": 215, "maxChars": 260 }
+        "title": { "font": "Readex", "size": 10, "x": 355, "y": 468, "w": 215, "maxChars": 40 },
+        "body": { "font": "Readex", "size": 8, "x": 355, "y": 455, "w": 215, "maxChars": 400 }
       },
       {
-        "title": { "font": "Readex", "size": 10, "x": 355, "y": 394, "w": 215 },
-        "body": { "font": "Readex", "size": 8, "x": 355, "y": 381, "w": 215, "maxChars": 260 }
+        "title": { "font": "Readex", "size": 10, "x": 355, "y": 394, "w": 215, "maxChars": 40 },
+        "body": { "font": "Readex", "size": 8, "x": 355, "y": 381, "w": 215, "maxChars": 400 }
       },
       {
-        "title": { "font": "Readex", "size": 10, "x": 355, "y": 321, "w": 215 },
-        "body": { "font": "Readex", "size": 8, "x": 355, "y": 308, "w": 215, "maxChars": 260 }
+        "title": { "font": "Readex", "size": 10, "x": 355, "y": 321, "w": 215, "maxChars": 40 },
+        "body": { "font": "Readex", "size": 8, "x": 355, "y": 308, "w": 215, "maxChars": 400 }
       }
     ],
     "longAnalysis": {
@@ -57,22 +57,22 @@
       "y": 170,
       "w": 475,
       "h": 110,
-      "maxChars": 1000
+      "maxChars": 1500
     }
   },
   "page2": {
     "traits": [
       {
-        "title": { "font": "KhandSB", "size": 12, "x": 120, "y": 610, "w": 150, "align": "left", "maxChars": 20 },
-        "body": { "font": "Readex", "size": 8, "x": 120, "y": 596, "w": 150, "maxChars": 160 }
+        "title": { "font": "KhandSB", "size": 12, "x": 120, "y": 610, "w": 150, "align": "left", "maxChars": 30 },
+        "body": { "font": "Readex", "size": 8, "x": 120, "y": 596, "w": 150, "maxChars": 250 }
       },
       {
-        "title": { "font": "KhandSB", "size": 12, "x": 295, "y": 610, "w": 150, "align": "left", "maxChars": 20 },
-        "body": { "font": "Readex", "size": 8, "x": 295, "y": 596, "w": 150, "maxChars": 160 }
+        "title": { "font": "KhandSB", "size": 12, "x": 295, "y": 610, "w": 150, "align": "left", "maxChars": 30 },
+        "body": { "font": "Readex", "size": 8, "x": 295, "y": 596, "w": 150, "maxChars": 250 }
       },
       {
-        "title": { "font": "KhandSB", "size": 12, "x": 470, "y": 610, "w": 150, "align": "left", "maxChars": 20 },
-        "body": { "font": "Readex", "size": 8, "x": 470, "y": 596, "w": 150, "maxChars": 160 }
+        "title": { "font": "KhandSB", "size": 12, "x": 470, "y": 610, "w": 150, "align": "left", "maxChars": 30 },
+        "body": { "font": "Readex", "size": 8, "x": 470, "y": 596, "w": 150, "maxChars": 250 }
       }
     ],
     "collaboration": {
@@ -82,7 +82,7 @@
       "y": 442,
       "w": 355,
       "h": 80,
-      "maxChars": 450
+      "maxChars": 900
     }
   }
 }

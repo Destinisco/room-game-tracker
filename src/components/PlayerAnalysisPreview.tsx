@@ -190,10 +190,10 @@ export const PlayerAnalysisPreview = ({
             const config = layout1.strengths[idx];
             if (!config) return;
 
-            const title = smartTrim(item.title || "", 30);
-            const bodyText = smartTrim(item.text || item.description || "", config.body.maxChars);
-            
-            // Draw title
+            const title = smartTrim(item.title || "", config.title.maxChars || 40);
+            const bodyText = item.text || item.description || "";
+
+            // Draw title (bold style)
             if (title) {
               page1.drawText(title, {
                 x: config.title.x,
@@ -203,18 +203,18 @@ export const PlayerAnalysisPreview = ({
                 color: rgb(0, 0, 0)
               });
             }
-            
-            // Draw body (wrapped)
+
+            // Draw body (wrapped) - start below title
             if (bodyText) {
               const bodyLines = fitTextInBox(
                 bodyText,
                 fonts.readexRegular,
                 config.body.size,
                 config.body.w,
-                60, // Approximate height
-                10  // Line height
+                70, // Increased height for more content
+                9   // Line height
               );
-              
+
               let yPos = config.body.y;
               bodyLines.forEach(line => {
                 if (line) {
@@ -225,7 +225,7 @@ export const PlayerAnalysisPreview = ({
                     font: fonts.readexRegular,
                     color: rgb(0.2, 0.2, 0.2)
                   });
-                  yPos -= 10;
+                  yPos -= 9;
                 }
               });
             }
@@ -237,10 +237,10 @@ export const PlayerAnalysisPreview = ({
             const config = layout1.weaknesses[idx];
             if (!config) return;
 
-            const title = smartTrim(item.title || "", 30);
-            const bodyText = smartTrim(item.text || item.description || "", config.body.maxChars);
-            
-            // Draw title
+            const title = smartTrim(item.title || "", config.title.maxChars || 40);
+            const bodyText = item.text || item.description || "";
+
+            // Draw title (bold style)
             if (title) {
               page1.drawText(title, {
                 x: config.title.x,
@@ -250,18 +250,18 @@ export const PlayerAnalysisPreview = ({
                 color: rgb(0, 0, 0)
               });
             }
-            
-            // Draw body (wrapped)
+
+            // Draw body (wrapped) - start below title
             if (bodyText) {
               const bodyLines = fitTextInBox(
                 bodyText,
                 fonts.readexRegular,
                 config.body.size,
                 config.body.w,
-                60,
-                10
+                70, // Increased height for more content
+                9   // Line height
               );
-              
+
               let yPos = config.body.y;
               bodyLines.forEach(line => {
                 if (line) {
@@ -272,19 +272,16 @@ export const PlayerAnalysisPreview = ({
                     font: fonts.readexRegular,
                     color: rgb(0.2, 0.2, 0.2)
                   });
-                  yPos -= 10;
+                  yPos -= 9;
                 }
               });
             }
           });
 
-          // 6) Long Analysis
+          // 6) Long Analysis (Trust section)
           const longAnalysisConfig = layout1.longAnalysis;
-          const longAnalysisText = smartTrim(
-            analysis.longAnalysis || analysis.trust || "",
-            longAnalysisConfig.maxChars
-          );
-          
+          const longAnalysisText = analysis.longAnalysis || analysis.trust || "";
+
           if (longAnalysisText) {
             const longAnalysisLines = fitTextInBox(
               longAnalysisText,
@@ -292,7 +289,7 @@ export const PlayerAnalysisPreview = ({
               longAnalysisConfig.size,
               longAnalysisConfig.w,
               longAnalysisConfig.h,
-              12
+              11 // Line height
             );
 
             let yPos = longAnalysisConfig.y;
@@ -305,7 +302,7 @@ export const PlayerAnalysisPreview = ({
                   font: fonts.readexRegular,
                   color: rgb(0, 0, 0)
                 });
-                yPos -= 12;
+                yPos -= 11;
               }
             });
           }
@@ -370,15 +367,15 @@ export const PlayerAnalysisPreview = ({
 
           // 7) Personality Traits - 3 columns
           const traits = (analysis.traits || analysis.personalityTraits || []).slice(0, 3);
-          
+
           traits.forEach((trait: any, idx: number) => {
             const config = layout2.traits[idx];
             if (!config) return;
 
-            const title = smartTrim(trait.title || "", config.title.maxChars);
-            const bodyText = smartTrim(trait.text || trait.description || "", config.body.maxChars);
-            
-            // Draw title
+            const title = smartTrim(trait.title || "", config.title.maxChars || 30);
+            const bodyText = trait.text || trait.description || "";
+
+            // Draw title (using semibold font)
             if (title) {
               page2.drawText(title, {
                 x: config.title.x,
@@ -388,18 +385,18 @@ export const PlayerAnalysisPreview = ({
                 color: rgb(0, 0, 0)
               });
             }
-            
-            // Draw body (wrapped)
+
+            // Draw body (wrapped) - start below title
             if (bodyText) {
               const bodyLines = fitTextInBox(
                 bodyText,
                 fonts.readexRegular,
                 config.body.size,
                 config.body.w,
-                70,
-                10
+                80, // Increased height for more content
+                9   // Line height
               );
-              
+
               let yPos = config.body.y;
               bodyLines.forEach(line => {
                 if (line) {
@@ -410,7 +407,7 @@ export const PlayerAnalysisPreview = ({
                     font: fonts.readexRegular,
                     color: rgb(0.2, 0.2, 0.2)
                   });
-                  yPos -= 10;
+                  yPos -= 9;
                 }
               });
             }
@@ -418,11 +415,8 @@ export const PlayerAnalysisPreview = ({
 
           // 8) Collaboration Advice
           const collabConfig = layout2.collaboration;
-          const collabText = smartTrim(
-            analysis.collaborationAdvice || analysis.collaboration || "",
-            collabConfig.maxChars
-          );
-          
+          const collabText = analysis.collaborationAdvice || analysis.collaboration || "";
+
           if (collabText) {
             const collabLines = fitTextInBox(
               collabText,
@@ -430,7 +424,7 @@ export const PlayerAnalysisPreview = ({
               collabConfig.size,
               collabConfig.w,
               collabConfig.h,
-              10
+              9 // Line height
             );
 
             let yPos = collabConfig.y;
@@ -443,7 +437,7 @@ export const PlayerAnalysisPreview = ({
                   font: fonts.readexRegular,
                   color: rgb(0, 0, 0)
                 });
-                yPos -= 10;
+                yPos -= 9;
               }
             });
           }

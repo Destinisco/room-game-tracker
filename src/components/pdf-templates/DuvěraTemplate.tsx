@@ -2,28 +2,37 @@ import { PdfTemplateProps } from "./types";
 
 export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps) => {
   // Parse data with fallbacks for old format
-  const strengths = analysis.strengths || 
+  const strengths = (analysis.strengths ||
     ((analysis as any).features || []).slice(0, 3).map((f: string) => ({
       title: "Silná stránka",
-      description: f
+      text: f
+    }))).map((item: any) => ({
+      title: item.title || "Silná stránka",
+      text: item.text || item.description || ""
     }));
 
-  const weaknesses = analysis.weaknesses || 
+  const weaknesses = (analysis.weaknesses ||
     ((analysis as any).flaws || []).slice(0, 3).map((f: string) => ({
       title: "Oblast k rozvoji",
-      description: f
+      text: f
+    }))).map((item: any) => ({
+      title: item.title || "Oblast k rozvoji",
+      text: item.text || item.description || ""
     }));
 
-  const trust = analysis.trust || (analysis as any).recommendations || "Informace o důvěře nejsou k dispozici.";
-  
-  const personalityTraits = analysis.personalityTraits || 
+  const longAnalysis = analysis.longAnalysis || analysis.trust || (analysis as any).recommendations || "Informace o důvěře nejsou k dispozici.";
+
+  const traits = (analysis.traits || analysis.personalityTraits ||
     ((analysis as any).behavior_insights || []).slice(0, 3).map((insight: string) => ({
       title: "Osobnostní rys",
-      description: insight
+      text: insight
+    }))).map((item: any) => ({
+      title: item.title || "Osobnostní rys",
+      text: item.text || item.description || ""
     }));
 
-  const collaboration = analysis.collaboration || (analysis as any).team_dynamics || "Informace o spolupráci nejsou k dispozici.";
-  
+  const collaborationAdvice = analysis.collaborationAdvice || analysis.collaboration || (analysis as any).team_dynamics || "Informace o spolupráci nejsou k dispozici.";
+
   const role = analysis.role || "Neznámá role";
   const code = analysis.code || "N/A";
   const color = analysis.color || player.band_color || "neznámá";
@@ -95,11 +104,16 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
           <div className="grid grid-cols-2 gap-8" style={{ marginTop: '110mm', paddingBottom: '20px' }}>
             {/* Strengths */}
             <div>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {strengths.slice(0, 3).map((item, idx) => (
                   <div key={idx}>
+                    {item.title && (
+                      <p className="text-xs font-semibold text-gray-900 mb-1">
+                        {item.title}
+                      </p>
+                    )}
                     <p className="text-xs text-gray-700 leading-snug">
-                      {item.description}
+                      {item.text}
                     </p>
                   </div>
                 ))}
@@ -108,11 +122,16 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
 
             {/* Weaknesses */}
             <div>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {weaknesses.slice(0, 3).map((item, idx) => (
                   <div key={idx}>
+                    {item.title && (
+                      <p className="text-xs font-semibold text-gray-900 mb-1">
+                        {item.title}
+                      </p>
+                    )}
                     <p className="text-xs text-gray-700 leading-snug">
-                      {item.description}
+                      {item.text}
                     </p>
                   </div>
                 ))}
@@ -120,10 +139,10 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
             </div>
           </div>
 
-          {/* Trust Section */}
+          {/* Long Analysis (Trust) Section */}
           <div className="flex flex-col justify-center items-center" style={{ marginTop: '20px' }}>
             <p className="text-xs text-gray-700 leading-relaxed text-justify max-w-[85%]">
-              {trust}
+              {longAnalysis}
             </p>
           </div>
         </div>
@@ -176,23 +195,25 @@ export const DuvěraTemplate = ({ analysis, player, template }: PdfTemplateProps
           {/* Personality Traits Section */}
           <div className="flex flex-col justify-center" style={{ minHeight: '33.33%', paddingTop: '50mm' }}>
             <div className="grid grid-cols-3 gap-6">
-              {personalityTraits.slice(0, 3).map((trait, idx) => (
+              {traits.slice(0, 3).map((trait, idx) => (
                 <div key={idx} className="text-center flex flex-col justify-center items-center">
-                  <p className="text-sm font-semibold mb-2">
-                    {trait.title}
-                  </p>
+                  {trait.title && (
+                    <p className="text-sm font-semibold mb-2">
+                      {trait.title}
+                    </p>
+                  )}
                   <p className="text-xs text-gray-700 leading-snug">
-                    {trait.description}
+                    {trait.text}
                   </p>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Collaboration Section */}
+          {/* Collaboration Advice Section */}
           <div className="flex flex-col justify-center items-center" style={{ minHeight: '33.33%', paddingTop: '20px' }}>
             <p className="text-xs text-gray-700 leading-relaxed text-justify max-w-[75%]">
-              {collaboration}
+              {collaborationAdvice}
             </p>
           </div>
         </div>
